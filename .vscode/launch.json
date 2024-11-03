@@ -1,0 +1,47 @@
+// AUTOMATICALLY GENERATED FILE. PLEASE DO NOT MODIFY IT MANUALLY
+//
+// PlatformIO Debugging Solution
+//
+// Documentation: https://docs.platformio.org/en/latest/plus/debugging.html
+// Configuration: https://docs.platformio.org/en/latest/projectconf/sections/env/options/debug/index.html
+
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug",
+            "executable": "/home/jlaustill/repo/ovgt/.pio/build/weact_mini_h743vitx/firmware.elf",
+            "projectEnvName": "weact_mini_h743vitx",
+            "toolchainBinDir": "/home/jlaustill/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "internalConsoleOptions": "openOnSessionStart",
+            "svdPath": "/home/jlaustill/.platformio/platforms/ststm32/misc/svd/STM32H743.svd",
+            "preLaunchTask": {
+                "type": "PlatformIO",
+                "task": "Pre-Debug"
+            }
+        },
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug (skip Pre-Debug)",
+            "executable": "/home/jlaustill/repo/ovgt/.pio/build/weact_mini_h743vitx/firmware.elf",
+            "projectEnvName": "weact_mini_h743vitx",
+            "toolchainBinDir": "/home/jlaustill/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "internalConsoleOptions": "openOnSessionStart",
+            "svdPath": "/home/jlaustill/.platformio/platforms/ststm32/misc/svd/STM32H743.svd"
+        },
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug (without uploading)",
+            "executable": "/home/jlaustill/repo/ovgt/.pio/build/weact_mini_h743vitx/firmware.elf",
+            "projectEnvName": "weact_mini_h743vitx",
+            "toolchainBinDir": "/home/jlaustill/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "internalConsoleOptions": "openOnSessionStart",
+            "svdPath": "/home/jlaustill/.platformio/platforms/ststm32/misc/svd/STM32H743.svd",
+            "loadMode": "manual"
+        }
+    ]
+}
