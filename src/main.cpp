@@ -1,16 +1,21 @@
 #include <Arduino.h>
 
-// put function declarations here:
-int myFunction(int, int);
+uint32_t lastBlink = 0;
+uint8_t LED_PIN = PA1;
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+    Serial.begin(115200);
+    pinMode(LED_PIN, OUTPUT);
+    digitalWrite(LED_PIN, 0);
+    lastBlink = millis();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-}
+    uint32_t currentMillis = millis();
 
-// put function definitions here:
-int myFunction(int x, int y) { return x + y; }
+    if ((currentMillis - lastBlink) >= 1000) {
+        lastBlink = currentMillis;
+        digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+        Serial.println("blinky blink " + (String) LED_PIN);
+    }
+}
