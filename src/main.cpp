@@ -1,10 +1,10 @@
 #include <Arduino.h>
+#include "domain/ovgt.h"
 
 void setup() {
-    Serial.begin(115200);
-    Serial.println("Setup complete");
+    ovgt::setup();
 }
 
 void loop() {
-    delay(1000);
+    ovgt::loop();
 }
