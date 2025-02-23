@@ -1,22 +1,32 @@
 #include <Arduino.h>
-// #include <Adafruit_MAX31855.h>
 #include "ovgt.h"
 #include "display/actuator.h"
 #include <LiquidCrystal_I2C.h>
 #include "AppData.h"
-#include <Adafruit_ADS1X15.h>
 
-Adafruit_ADS1115 ads;  /* Use this for the 16-bit version */
+#include "Protocentral_ADS1220.h"
+#include <SPI.h>
 
-// Pin connected to the ALERT/RDY signal for new sample notification.
-constexpr int READY_PIN = 41;
+#define ADS1220_CS_PIN    10
+#define ADS1220_DRDY_PIN  41
+
+Protocentral_ADS1220 pc_ads1220;
+int32_t adc_data;
+float ADS1220Temperature;
+volatile bool drdyIntrFlag = false;
+float Vout = 0.0;
+
+void drdyInterruptHndlr(){
+    Serial.println("DRDY Interrupt");
+  drdyIntrFlag = true;
+}
+
+void enableInterruptPin(){
+  attachInterrupt(digitalPinToInterrupt(ADS1220_DRDY_PIN), drdyInterruptHndlr, FALLING);
+}
 
 volatile bool new_data = false;
 uint8_t sensor = 0;
-
-void NewDataReadyISR() {
-  new_data = true;
-}
 
 int16_t adc0 = 0;
 int16_t adc1 = 0;
@@ -33,10 +43,17 @@ unsigned long fastLoopCountLastMillis = 0;
 char buffer[21];  // 20 chars + null terminator
 AppData ovgt::appData;
 
-// Adafruit_MAX31855 thermocoupleInputTemp(9);
 
 void ovgt::setup() {
     Serial.begin(115200);
+
+    pc_ads1220.begin(ADS1220_CS_PIN,ADS1220_DRDY_PIN);
+    
+    pc_ads1220.set_data_rate(DR_1000SPS);
+    pc_ads1220.set_conv_mode_continuous();          //Set continuous conversion mode
+    pc_ads1220.Start_Conv();  //Start continuous conversion mode
+
+    enableInterruptPin();
 
     lcd.init();
     lcd.backlight();
@@ -45,25 +62,8 @@ void ovgt::setup() {
     thisMillis = millis();
     count = 0;
     thisDuration = 0;
-
-
-//   if (!thermocoupleInputTemp.begin()) {
-//     Serial.println("ERROR INITING thermocoupleInputTemp");
-//   } else {
-//     Serial.println("thermocoupleInputTemp initialized");
-//   }
     
     Actuator::Initialize(&ovgt::appData);
-
-
-
-    if (!ads.begin()) {
-    Serial.println("Failed to initialize ADS.");
-    }
-
-    pinMode(READY_PIN, INPUT);
-    // We get a falling edge every time a new sample is ready.
-    attachInterrupt(digitalPinToInterrupt(READY_PIN), NewDataReadyISR, FALLING);
 
     Serial.println("Setup complete");
 }
@@ -76,56 +76,22 @@ void ovgt::loop() {
 
     Actuator::Loop();
 
-    if (thisMillis - fastLoopCountLastMillis > 1) {
-        if (new_data) {
-        // Read the latest data.
-            if (sensor == 0) {
-                adc0 = ads.getLastConversionResults();
-            } else if (sensor == 1) {
-                adc1 = ads.getLastConversionResults();
-            } else if (sensor == 2) {
-                adc2 = ads.getLastConversionResults();
-            }
-            sensor++;
-            if (sensor > 2) {
-                sensor = 0;
-            }
-        // Clear the flag.
-        new_data = false;
-        //   Serial.print("ADC0: "); Serial.print(adc0); Serial.print(", ADC1: "); Serial.print(adc1); Serial.print(", ADC2: "); Serial.println(adc2);
-        } else {
-            if (sensor == 0) {
-                // Start continuous conversions.
-                ads.startADCReading(ADS1X15_REG_CONFIG_MUX_SINGLE_0, /*continuous=*/true);
-            } else if (sensor == 1) {
-                ads.startADCReading(ADS1X15_REG_CONFIG_MUX_SINGLE_1, /*continuous=*/true);
-            } else if (sensor == 2) {
-                ads.startADCReading(ADS1X15_REG_CONFIG_MUX_SINGLE_2, /*continuous=*/true);
-            }
-        }
+    if(drdyIntrFlag){
+        drdyIntrFlag = false;
 
-        fastLoopCountLastMillis = thisMillis;
-        // Serial.println("Fast loop");
+        adc_data=pc_ads1220.Read_Data_Samples();
+        Vout = (float)((adc_data*5.0*1000)/5.0);     //In  mV
+        ovgt::readADS1220Temperature();  
     }
     
 
     if (thisMillis - loopCountLastMillis > 1000) {
-          // basic readout test, just print the current temp
-        // Serial.print("Internal Temp = ");
-        // Serial.println(thermocoupleInputTemp.readInternal());
-
-        // double c = thermocoupleInputTemp.readCelsius();
-        // if (isnan(c)) {
-        //     Serial.println("Thermocouple fault(s) detected!");
-        //     uint8_t e = thermocoupleInputTemp.readError();
-        //     if (e & MAX31855_FAULT_OPEN) Serial.println("FAULT: Thermocouple is open - no connections.");
-        //     if (e & MAX31855_FAULT_SHORT_GND) Serial.println("FAULT: Thermocouple is short-circuited to GND.");
-        //     if (e & MAX31855_FAULT_SHORT_VCC) Serial.println("FAULT: Thermocouple is short-circuited to VCC.");
-        // } else {
-        //     Serial.print("C = ");
-        //     Serial.println(c + 35);
-        // }
-
+        Serial.print("Vout in mV : ");
+        Serial.print(Vout);
+        Serial.print("  32bit HEX : ");
+        Serial.print(adc_data,HEX);
+        Serial.print("  Temp in °C : ");
+        Serial.println(ADS1220Temperature,5);  
 
         lcd.setCursor(0, 0);
         snprintf(buffer, 21, "%2d C Motor Load %3d", ovgt::appData.actuatorTemp, ovgt::appData.actuatorMotorLoad);
@@ -150,4 +116,13 @@ void ovgt::loop() {
         count = 0;
         loopCountLastMillis = thisMillis;
     }
+}
+
+void ovgt::readADS1220Temperature()
+{
+    pc_ads1220.TemperatureSensorMode_enable();
+        delay(50);                                                              // waiting time after register changed, for 20SPS
+    ADS1220Temperature = (pc_ads1220.Read_Data_Samples() / 1000 * 0.03125);     //In  °C
+    pc_ads1220.TemperatureSensorMode_disable();
+        delay(50);                                                              // waiting time after register changed, for 20SPS
 }
