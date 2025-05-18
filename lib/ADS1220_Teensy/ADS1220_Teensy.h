@@ -1,3 +1,5 @@
+// Add these to your ADS1220_Teensy.h:
+
 #pragma once
 #include <Arduino.h>
 #include <SPI.h>
@@ -55,9 +57,15 @@ public:
 
   // Set data rate (global)
   void setDataRate(DataRate rate);
+  
+  // Set reference voltage (for calculations)
+  void setVref(float vref);
 
   // Get the latest averaged value (no blocking)
   float get(Channel ch) const;
+  
+  // Read data manually (for debugging)
+  float readDataManually();
 
   // To be called from ISR or background task (DMA completion or DRDY)
   void handleDataReady();
@@ -69,9 +77,11 @@ private:
   static const uint8_t MAX_CHANNELS = 4;
   static const uint8_t MAX_BUFFER_SIZE = 64;
 
+  SPISettings _spiSettings;
   SPIClass* _spi;
   uint8_t _csPin;
   uint8_t _drdyPin;
+  float _vref; // Reference voltage for calculations
 
   Channel _channels[MAX_CHANNELS];
   uint8_t _channelCount;
