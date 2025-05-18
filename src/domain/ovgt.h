@@ -9,7 +9,7 @@ class ovgt
         static unsigned long thisDuration;
         static unsigned long loopCountLastMillis;
         static AppData appData;
-        static void readADS1220Temperature();
+        static void debugLog();
 
     public:
         static void setup();
