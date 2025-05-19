@@ -31,9 +31,54 @@ AppData ovgt::appData;
 
 IntervalTimer debugTimer;
 
+// Function to manually test the ADS1220 pins and connections
+void testADS1220Hardware() {
+  Serial.println("\n=== Testing ADS1220 Hardware Connections ===");
+  
+  // Test CS pin
+  Serial.println("Testing CS pin control...");
+  digitalWrite(ADS1220_CS_PIN, LOW);
+  Serial.println("CS pin set LOW");
+  delay(500);
+  digitalWrite(ADS1220_CS_PIN, HIGH);
+  Serial.println("CS pin set HIGH");
+  
+  // Test DRDY pin
+  Serial.print("DRDY pin state: ");
+  Serial.println(digitalRead(ADS1220_DRDY_PIN));
+  
+  // Monitor DRDY for a few seconds
+  Serial.println("Monitoring DRDY pin for 5 seconds...");
+  unsigned long startTime = millis();
+  int transitions = 0;
+  bool lastState = digitalRead(ADS1220_DRDY_PIN);
+  
+  while (millis() - startTime < 5000) {
+    bool currentState = digitalRead(ADS1220_DRDY_PIN);
+    if (currentState != lastState) {
+      lastState = currentState;
+      transitions++;
+      Serial.print("DRDY pin transition detected! State: ");
+      Serial.println(currentState);
+    }
+    delay(1);
+  }
+  
+  Serial.print("Total DRDY transitions in 5 seconds: ");
+  Serial.println(transitions);
+  
+  if (transitions == 0) {
+    Serial.println("WARNING: No DRDY transitions detected. This may indicate a hardware issue.");
+    Serial.println("Check the DRDY pin connection and ADS1220 power.");
+  }
+  
+  Serial.println("=== Hardware Test Complete ===\n");
+}
+
 void ovgt::debugLog() {
   Serial.print("Vout in mV : ");
-  Serial.print(ads.get(ADS1220_Teensy::AN0));
+  float value = ads.get(ADS1220_Teensy::AN0);
+  Serial.print(value * 1000.0f);  // Convert to mV for display
   
   Serial.print(" Cycles/Second: ");
   Serial.print(count);
@@ -49,7 +94,7 @@ void ovgt::debugLog() {
 
 void ovgt::setup() {
   Serial.begin(115200);
-  delay(500); // Give some time for serial connection
+  while (!Serial && millis() < 3000); // Wait for serial connection with timeout
   
   Serial.println("\n\n=== ADS1220 Test with External Reference ===");
   Serial.println("Setup: Using 5V external reference, AIN0 connected to 3.3V");
@@ -58,6 +103,9 @@ void ovgt::setup() {
   pinMode(ADS1220_CS_PIN, OUTPUT);
   digitalWrite(ADS1220_CS_PIN, HIGH);
   pinMode(ADS1220_DRDY_PIN, INPUT);
+  
+  // Test hardware connections
+  testADS1220Hardware();
   
   // Start SPI
   SPI.begin();

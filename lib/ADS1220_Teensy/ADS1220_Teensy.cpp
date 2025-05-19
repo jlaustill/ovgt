@@ -1,28 +1,11 @@
 #include "ADS1220_Teensy.h"
 
-// ADS1220 command definitions
-#define CMD_RESET        0x06
-#define CMD_START_SYNC   0x08
-#define CMD_POWERDOWN    0x02
-#define CMD_RDATA        0x10
-#define CMD_WREG         0x40
-#define CMD_RREG         0x20
-
-// ADS1220 register addresses
-#define REG_CONFIG0      0x00
-#define REG_CONFIG1      0x01
-#define REG_CONFIG2      0x02
-#define REG_CONFIG3      0x03
-
-// Reference voltage - set to your external reference
-#define VREF_EXTERNAL    5.0f  // 5V external reference
-
 ADS1220_Teensy* ADS1220_Teensy::instancePointer = nullptr;
 
 // Fixed constructor with correct initialization order
 ADS1220_Teensy::ADS1220_Teensy()
   : _spi(nullptr), _csPin(0), _drdyPin(0), _channelCount(0),
-    _gain(gain1), _rate(dataRate20SPS), _vref(VREF_EXTERNAL),
+    _gain(gain1), _rate(dataRate20SPS), _vref(5.0f),
     _dmaTransferInProgress(false) {  // Now in correct order
   instancePointer = this;
   
@@ -32,6 +15,9 @@ ADS1220_Teensy::ADS1220_Teensy()
       _data[i].buffer[j] = 0.0f;
     }
   }
+  
+  // Initialize SPI settings
+  _spiSettings = SPISettings(2000000, MSBFIRST, SPI_MODE1);
 }
 
 void ADS1220_Teensy::setVref(float vref) {
@@ -39,6 +25,10 @@ void ADS1220_Teensy::setVref(float vref) {
   Serial.print("Setting reference voltage to ");
   Serial.print(_vref, 3);
   Serial.println("V");
+
+    config2 &= ~REG_CONFIG2_VREF_MASK;
+    config2 |= static_cast<uint8_t>(vref * 10);
+    writeRegister(REG_CONFIG2,config2);
 }
 
 void ADS1220_Teensy::begin(SPIClass& spi, uint8_t csPin, uint8_t drdyPin) {
@@ -47,109 +37,61 @@ void ADS1220_Teensy::begin(SPIClass& spi, uint8_t csPin, uint8_t drdyPin) {
   _drdyPin = drdyPin;
 
   pinMode(_csPin, OUTPUT);
-  digitalWrite(_csPin, HIGH);
-
+  deselect();
   pinMode(_drdyPin, INPUT);
   
   _spi->begin();
   
-  // Try different SPI modes to find the one that works best
-  const int NUM_MODES = 4;
-  SPISettings modeSettings[] = {
-    SPISettings(500000, MSBFIRST, SPI_MODE0),
-    SPISettings(500000, MSBFIRST, SPI_MODE1),
-    SPISettings(500000, MSBFIRST, SPI_MODE2),
-    SPISettings(500000, MSBFIRST, SPI_MODE3)
-  };
+  // Reset the device - based on Protocentral approach
+  SPI_Command(CMD_RESET);
+  delay(10); // Give some time to reset
   
-  bool communicationEstablished = false;
-  int workingMode = -1;
-  
-  for (int mode = 0; mode < NUM_MODES && !communicationEstablished; mode++) {
-    Serial.print("\nTrying SPI_MODE");
-    Serial.println(mode);
-    
-    _spiSettings = modeSettings[mode];
-    
-    // Reset the device
-    select();
-    _spi->beginTransaction(_spiSettings);
-    _spi->transfer(CMD_RESET);
-    _spi->endTransaction();
-    deselect();
-    delay(10);
-    
-    // Write to REG0 (0x08 = 20 SPS)
-    select();
-    _spi->beginTransaction(_spiSettings);
-    _spi->transfer(CMD_WREG | (REG_CONFIG0 << 2));
-    _spi->transfer(0x00); // Write 1 register
-    _spi->transfer(0x08); // 20 SPS
-    _spi->endTransaction();
-    deselect();
-    delay(5);
-    
-    // Read back REG0
-    select();
-    _spi->beginTransaction(_spiSettings);
-    _spi->transfer(CMD_RREG | (REG_CONFIG0 << 2));
-    _spi->transfer(0x00); // Read 1 register
-    uint8_t regValue = _spi->transfer(0x00);
-    _spi->endTransaction();
-    deselect();
-    
-    Serial.print("REG0 read: 0x");
-    Serial.println(regValue, HEX);
-    
-    if (regValue == 0x08) {
-      Serial.println("SUCCESS! Communication established.");
-      communicationEstablished = true;
-      workingMode = mode;
+  // Wait for DRDY to go low after initialization
+  Serial.println("Waiting for DRDY to go low after reset...");
+  uint32_t startTime = millis();
+  while(digitalRead(_drdyPin) == HIGH) {
+    if(millis() - startTime > 1000) {
+      Serial.println("Timeout waiting for DRDY after reset!");
+      break;
     }
-    else if (regValue != 0xFF) {
-      Serial.println("Partial success - got a response, but not the expected value.");
-      communicationEstablished = true;
-      workingMode = mode;
-    }
-    
-    delay(100);
+    delay(1);
   }
-  
-  if (workingMode >= 0) {
-    Serial.print("Using SPI_MODE");
-    Serial.println(workingMode);
-    _spiSettings = modeSettings[workingMode];
-  } else {
-    Serial.println("Using default SPI_MODE1");
-    _spiSettings = SPISettings(500000, MSBFIRST, SPI_MODE1);
-  }
-  
-  // Reset again with the correct mode
-  select();
-  _spi->beginTransaction(_spiSettings);
-  _spi->transfer(CMD_RESET);
-  _spi->endTransaction();
-  deselect();
-  delay(10);
   
   // Configure ADS1220 for operation with external reference
+  // Using more standard approach based on Protocentral
   
-  // CONFIG0: Set data rate to 20 SPS, MUX to AIN0/GND (single-ended)
-  uint8_t config0 = 0x08; // 20 SPS, AIN0 to GND (default MUX setting 0000)
+  // CONFIG0: 
+  // - Bits 7-4: MUX setting for AIN0 to AINN (GND)
+  // - Bits 3-1: Gain setting (001 = 2)
+  // - Bit 0: PGA enabled (0)
+  config0 = 0x01; // AIN0 to AINN=GND, Gain 1, PGA not enabled
+  
+  // CONFIG1:
+  // - Bits 7-5: Data rate (000 = 20 SPS)
+  // - Bits 4-3: Operating mode (00 = Normal)
+  // - Bit 2: Conversion mode (1 = continuous)
+  // - Bit 1: Temperature sensor mode (0 = disabled)
+  // - Bit 0: Current source (0 = off)
+  config1 = 0x04; // 20 SPS, Normal mode, Continuous conversion, Temp sensor off, Current source off
+  
+  // CONFIG2:
+  // - Bits 7-6: External reference (11 = Analog Supply (AVDD - AVSS_))
+  // - Bits 5-4: 50/60Hz rejection (00 = no rejection)
+  // - Bit 3: Low-side power switch (0 = always open)
+  // - Bits 2-0: IDAC current setting (000 = off)
+  config2 = 0b11000000; // External reference, 50/60Hz rejection, switch open, IDAC off
+  
+  // CONFIG3:
+  // - Bits 7-5: IDAC1 routing (000 = disabled)
+  // - Bits 4-2: IDAC2 routing (000 = disabled)
+  // - Bit 1: DRDY mode (0 = DRDY pin reflects data availability)
+  // - Bit 0: Reserved (0)
+  config3 = 0x00; // IDAC1 disabled, IDAC2 disabled, DRDY pin indicates data ready
+  
+  // Write configuration registers
   writeRegister(REG_CONFIG0, config0);
-  
-  // CONFIG1: Set gain to 1, disable temp sensor
-  uint8_t config1 = 0x00; // Gain 1, disable temp sensor, no low-side power switch
   writeRegister(REG_CONFIG1, config1);
-  
-  // CONFIG2: Use external reference on REFP0/REFN0, disable IDAC
-  // For external reference: bit 6=0, bit 5=0
-  // Disable IDAC: bits 2-0 = 000
-  uint8_t config2 = 0x00; // External reference on REFP0/REFN0, IDAC off
   writeRegister(REG_CONFIG2, config2);
-  
-  // CONFIG3: Default settings - no IDAC routing
-  uint8_t config3 = 0x00;
   writeRegister(REG_CONFIG3, config3);
   
   // Print current register values for debugging
@@ -169,15 +111,11 @@ void ADS1220_Teensy::begin(SPIClass& spi, uint8_t csPin, uint8_t drdyPin) {
   Serial.println("Performing a manual test reading...");
   
   // Start conversion
-  select();
-  _spi->beginTransaction(_spiSettings);
-  _spi->transfer(CMD_START_SYNC);
-  _spi->endTransaction();
-  deselect();
+  SPI_Command(CMD_START_SYNC);
   
   // Wait for DRDY to go low
   Serial.println("Waiting for DRDY to go low...");
-  uint32_t startTime = millis();
+  startTime = millis();
   while (digitalRead(_drdyPin) == HIGH && (millis() - startTime < 1000)) {
     // Wait for DRDY or timeout
   }
@@ -185,21 +123,25 @@ void ADS1220_Teensy::begin(SPIClass& spi, uint8_t csPin, uint8_t drdyPin) {
   if (digitalRead(_drdyPin) == LOW) {
     Serial.println("DRDY went low, reading data...");
     
-    // Read the data
-    select();
-    _spi->beginTransaction(_spiSettings);
-    _spi->transfer(CMD_RDATA);
-    
+    // Read the data using simplified approach
     uint8_t data[3];
-    data[0] = _spi->transfer(0);
-    data[1] = _spi->transfer(0);
-    data[2] = _spi->transfer(0);
+    SPI.beginTransaction(_spiSettings);
+    select();
+    delayMicroseconds(1);
     
-    _spi->endTransaction();
+    SPI.transfer(CMD_RDATA);
+    data[0] = SPI.transfer(0);
+    data[1] = SPI.transfer(0);
+    data[2] = SPI.transfer(0);
+    
+    delayMicroseconds(1);
     deselect();
+    SPI.endTransaction();
     
     uint32_t raw = ((uint32_t)data[0] << 16) | ((uint32_t)data[1] << 8) | data[2];
-    if (raw & 0x800000) raw |= 0xFF000000; // sign extend
+    if (data[0] & 0x80) { // Check MSB for sign
+        raw |= 0xFF000000; // Sign extend for negative numbers
+    }
     
     // Use external reference voltage for calculation
     float voltage = (float)((int32_t)raw) * _vref / 0x7FFFFF;
@@ -257,6 +199,17 @@ void ADS1220_Teensy::begin(SPIClass& spi, uint8_t csPin, uint8_t drdyPin) {
   Serial.println("ADS1220 initialization complete");
 }
 
+
+void ADS1220_Teensy::SPI_Command(uint8_t cmd) {
+  SPI.beginTransaction(_spiSettings);
+  select();
+  delayMicroseconds(1);
+  SPI.transfer(cmd);
+  delayMicroseconds(1);
+  deselect();
+  SPI.endTransaction();
+}
+
 void ADS1220_Teensy::start(Channel ch0) {
   _channels[0] = ch0;
   _channelCount = 1;
@@ -265,13 +218,15 @@ void ADS1220_Teensy::start(Channel ch0) {
   Channel ch = _channels[_currentChannelIndex];
   uint8_t mux = ((uint8_t)ch) << 4; // AINx to AINN (GND)
 
-  writeRegister(REG_CONFIG0, (readRegister(REG_CONFIG0) & 0x0F) | mux);
+  // Set mux configuration in CONFIG0 register
+  // Clear bits 7-4 (MUX config) and set new MUX value
+  uint8_t config0 = readRegister(REG_CONFIG0);
+  config0 &= 0x0F; // Clear MUX bits (bits 7-4)
+  config0 |= mux;  // Set new MUX value
+  writeRegister(REG_CONFIG0, config0);
 
-  select();
-  _spi->beginTransaction(_spiSettings);
-  _spi->transfer(CMD_START_SYNC);
-  _spi->endTransaction();
-  deselect();
+  // Start continuous conversions
+  SPI_Command(CMD_START_SYNC);
   
   Serial.print("Starting ADS1220 with channel ");
   Serial.println(ch0);
@@ -353,124 +308,51 @@ float ADS1220_Teensy::get(Channel ch) const {
 void ADS1220_Teensy::handleDrdyInterrupt() {
   Serial.println("DRDY Interrupt");
   if (!_dmaTransferInProgress) {
-    select();
-    _spi->beginTransaction(_spiSettings);
-    _spi->transfer(CMD_RDATA);
-
-    _dmaTransferInProgress = true;
+    // Using manual reading instead of DMA for reliability
+    float voltage = readDataManually();
     
-    // Determine correct DMA trigger source based on SPI instance
-    uint8_t dmamux_source;
-    if (_spi == &SPI) {
-      dmamux_source = DMAMUX_SOURCE_LPSPI4_RX;
-    } else if (_spi == &SPI1) {
-      dmamux_source = DMAMUX_SOURCE_LPSPI3_RX;
-    } else if (_spi == &SPI2) {
-      dmamux_source = DMAMUX_SOURCE_LPSPI1_RX;
-    } else {
-      dmamux_source = DMAMUX_SOURCE_LPSPI4_RX; // Default
-    }
+    // Update channel average
+    updateChannelAverage(_currentChannelIndex, voltage);
     
-    _dma.triggerAtHardwareEvent(dmamux_source);
-    _dma.enable();
-
-    // Send 3 dummy bytes to clock out the 24-bit ADC result
-    _spi->transfer(0); // Dummy bytes to trigger DMA RX
-    _spi->transfer(0);
-    _spi->transfer(0);
+    // Move to next channel
+    _currentChannelIndex = (_currentChannelIndex + 1) % _channelCount;
     
-    // If DMA doesn't trigger for some reason, add a manual timeout
-    uint32_t startTime = millis();
-    while (_dmaTransferInProgress && (millis() - startTime < 100)) {
-      // Wait for DMA or timeout
-    }
-    
-    // If we timed out, handle it manually
-    if (_dmaTransferInProgress) {
-      Serial.println("DMA timeout - handling manually");
-      _dmaTransferInProgress = false;
-      _spi->endTransaction();
-      deselect();
-      
-      // Read manually instead
-      float manualReading = readDataManually();
-      updateChannelAverage(_currentChannelIndex, manualReading);
-      
-      // Move to next channel
-      _currentChannelIndex = (_currentChannelIndex + 1) % _channelCount;
+    // Only update channel configuration if we have more than one channel
+    if (_channelCount > 1) {
       Channel ch = _channels[_currentChannelIndex];
       uint8_t mux = ((uint8_t)ch) << 4; // AINx to AINN (GND)
       
-      writeRegister(REG_CONFIG0, (readRegister(REG_CONFIG0) & 0x0F) | mux);
+      uint8_t config0 = readRegister(REG_CONFIG0);
+      config0 &= 0x0F; // Clear MUX bits (bits 7-4)
+      config0 |= mux;  // Set new MUX value
+      writeRegister(REG_CONFIG0, config0);
       
-      select();
-      _spi->beginTransaction(_spiSettings);
-      _spi->transfer(CMD_START_SYNC);
-      _spi->endTransaction();
-      deselect();
+      // Start next conversion
+      SPI_Command(CMD_START_SYNC);
     }
   } else {
     Serial.println("DRDY interrupt while DMA in progress - ignoring");
   }
 }
 
-void ADS1220_Teensy::handleDataReady() {
-  Serial.println("Data ready");
-  _spi->endTransaction();
-  deselect();
-
-  uint32_t raw = ((_dmaRxBuffer[0] << 16) | (_dmaRxBuffer[1] << 8) | _dmaRxBuffer[2]);
-  if (raw & 0x800000) raw |= 0xFF000000; // sign extend
-  
-  // Debug raw data
-  Serial.print("Raw data bytes: 0x");
-  Serial.print(_dmaRxBuffer[0], HEX);
-  Serial.print(" 0x");
-  Serial.print(_dmaRxBuffer[1], HEX);
-  Serial.print(" 0x");
-  Serial.println(_dmaRxBuffer[2], HEX);
-  Serial.print("Raw value: ");
-  Serial.print((int32_t)raw);
-  Serial.print(" (0x");
-  Serial.print(raw, HEX);
-  Serial.println(")");
-  
-  // Use the external reference voltage instead of fixed 2.048V
-  float voltage = (float)((int32_t)raw) * _vref / 0x7FFFFF;
-  Serial.print("Calculated voltage: ");
-  Serial.println(voltage, 6);
-
-  updateChannelAverage(_currentChannelIndex, voltage);
-
-  _currentChannelIndex = (_currentChannelIndex + 1) % _channelCount;
-  Channel ch = _channels[_currentChannelIndex];
-  uint8_t mux = ((uint8_t)ch) << 4; // AINx to AINN (GND)
-
-  writeRegister(REG_CONFIG0, (readRegister(REG_CONFIG0) & 0x0F) | mux);
-
-  select();
-  _spi->beginTransaction(_spiSettings);
-  _spi->transfer(CMD_START_SYNC);
-  _spi->endTransaction();
-  deselect();
-}
-
-// Update readDataManually as well:
 float ADS1220_Teensy::readDataManually() {
-  Serial.println("Reading data manually (no DMA)");
+  Serial.println("Reading data manually");
   
-  select();
-  _spi->beginTransaction(_spiSettings);
-  _spi->transfer(CMD_RDATA);
-  
-  // Read 3 bytes directly
+  // Read data using protocentral approach
   uint8_t data[3];
-  data[0] = _spi->transfer(0);
-  data[1] = _spi->transfer(0);
-  data[2] = _spi->transfer(0);
   
-  _spi->endTransaction();
+  SPI.beginTransaction(_spiSettings);
+  select();
+  delayMicroseconds(1);
+  
+  SPI.transfer(CMD_RDATA);
+  data[0] = SPI.transfer(0);
+  data[1] = SPI.transfer(0);
+  data[2] = SPI.transfer(0);
+  
+  delayMicroseconds(1);
   deselect();
+  SPI.endTransaction();
   
   // Debug raw data
   Serial.print("Raw data bytes: 0x");
@@ -481,48 +363,51 @@ float ADS1220_Teensy::readDataManually() {
   Serial.println(data[2], HEX);
   
   uint32_t raw = ((uint32_t)data[0] << 16) | ((uint32_t)data[1] << 8) | data[2];
-  if (raw & 0x800000) raw |= 0xFF000000; // sign extend
+  if (data[0] & 0x80) { // Check MSB for sign
+    raw |= 0xFF000000; // Sign extend for negative numbers
+  }
   
-  Serial.print("Raw value: ");
-  Serial.print((int32_t)raw);
-  Serial.print(" (0x");
-  Serial.print(raw, HEX);
-  Serial.println(")");
+//   Serial.print("Raw value: ");
+//   Serial.print((int32_t)raw);
+//   Serial.print(" (0x");
+//   Serial.print(raw, HEX);
+//   Serial.println(")");
   
   // Use external reference for calculation
-  float voltage = (float)((int32_t)raw) * _vref / 0x7FFFFF;
+  float voltage = (float)(((int32_t)raw * _vref / 1) / FULL_SCALE);
   Serial.print("Calculated voltage: ");
   Serial.println(voltage, 6);
   
   return voltage;
 }
 
-void ADS1220_Teensy::select() {
-  digitalWrite(_csPin, LOW);
-}
-
-void ADS1220_Teensy::deselect() {
-  digitalWrite(_csPin, HIGH);
-}
-
-void ADS1220_Teensy::writeRegister(uint8_t reg, uint8_t value) {
+void ADS1220_Teensy::writeRegister(uint8_t address, uint8_t value) {
+  SPI.beginTransaction(_spiSettings);
   select();
-  _spi->beginTransaction(_spiSettings);
-  _spi->transfer(CMD_WREG | ((reg & 0x03) << 2));
-  _spi->transfer(0x00); // write one register
-  _spi->transfer(value);
-  _spi->endTransaction();
+  delayMicroseconds(1);
+  
+  SPI.transfer(CMD_WREG | (address << 2));
+  SPI.transfer(value);
+  
+  delayMicroseconds(1);
   deselect();
+  SPI.endTransaction();
 }
 
 uint8_t ADS1220_Teensy::readRegister(uint8_t reg) {
+  uint8_t value;
+  
+  SPI.beginTransaction(_spiSettings);
   select();
-  _spi->beginTransaction(_spiSettings);
-  _spi->transfer(CMD_RREG | ((reg & 0x03) << 2));
-  _spi->transfer(0x00); // read one register
-  uint8_t value = _spi->transfer(0x00);
-  _spi->endTransaction();
+  delayMicroseconds(1);
+  
+  SPI.transfer(CMD_RREG | (reg << 2));
+  value = SPI.transfer(0);
+  
+  delayMicroseconds(1);
   deselect();
+  SPI.endTransaction();
+  
   return value;
 }
 
@@ -534,12 +419,12 @@ void ADS1220_Teensy::updateChannelAverage(uint8_t internalIndex, float newValue)
   cd.index = (cd.index + 1) % cd.size;
   cd.average = cd.sum / cd.size;
   
-  Serial.print("Channel ");
-  Serial.print(_channels[internalIndex]);
-  Serial.print(" new value: ");
-  Serial.print(newValue, 6);
-  Serial.print(", average: ");
-  Serial.println(cd.average, 6);
+//   Serial.print("Channel ");
+//   Serial.print(_channels[internalIndex]);
+//   Serial.print(" new value: ");
+//   Serial.print(newValue, 6);
+//   Serial.print(", average: ");
+//   Serial.println(cd.average, 6);
 }
 
 void ADS1220_Teensy::_isrHandler() {
@@ -553,6 +438,44 @@ void ADS1220_Teensy::_dmaISR() {
   if (instancePointer) {
     instancePointer->_dma.clearInterrupt();
     instancePointer->_dmaTransferInProgress = false;
-    instancePointer->handleDataReady();
+    
+    // Process the data from DMA buffer
+    uint32_t raw = ((instancePointer->_dmaRxBuffer[0] << 16) | 
+                   (instancePointer->_dmaRxBuffer[1] << 8) | 
+                    instancePointer->_dmaRxBuffer[2]);
+                    
+    if (instancePointer->_dmaRxBuffer[0] & 0x80) {
+      raw |= 0xFF000000; // Sign extend for negative numbers
+    }
+    
+    float voltage = (float)((int32_t)raw) * instancePointer->_vref / 0x7FFFFF;
+    
+    // Update channel average
+    instancePointer->updateChannelAverage(instancePointer->_currentChannelIndex, voltage);
+    
+    // Move to next channel
+    instancePointer->_currentChannelIndex = (instancePointer->_currentChannelIndex + 1) % instancePointer->_channelCount;
+    
+    // Update MUX configuration for next channel
+    if (instancePointer->_channelCount > 1) {
+      ADS1220_Teensy::Channel ch = instancePointer->_channels[instancePointer->_currentChannelIndex];
+      uint8_t mux = ((uint8_t)ch) << 4;
+      
+      uint8_t config0 = instancePointer->readRegister(REG_CONFIG0);
+      config0 &= 0x0F;
+      config0 |= mux;
+      instancePointer->writeRegister(REG_CONFIG0, config0);
+    }
+    
+    // Start next conversion
+    instancePointer->SPI_Command(CMD_START_SYNC);
   }
+}
+
+void ADS1220_Teensy::select() {
+  digitalWriteFast(_csPin, LOW);
+}
+
+void ADS1220_Teensy::deselect() {
+  digitalWriteFast(_csPin, HIGH);
 }
