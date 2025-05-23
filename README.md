@@ -9,8 +9,10 @@ An open-source Variable Geometry Turbo controller for Teensy 4.1 and MicroMod Te
 - MicroMod Teensy (secondary target)
 
 ### Required Components
-- 20x4 I2C LCD Display
 - CAN transceiver compatible with 3.3V logic
+
+### Optional Components
+- 20x4 I2C LCD Display (used primarily for debugging)
 
 ## Pin Usage
 
@@ -18,7 +20,7 @@ An open-source Variable Geometry Turbo controller for Teensy 4.1 and MicroMod Te
 | Function | Pin | Description |
 |----------|-----|-------------|
 | Actuator Control | PWM Pin 2 | PWM output at 300Hz for VGT actuator control |
-| CAN Bus | CAN2 | Communication with engine/vehicle CAN bus |
+| CAN Bus | CAN2 | Communication with the Actuator |
 | LCD Display | I2C (pins 18/19) | Communication with 20x4 LCD display (address 0x27) |
 
 ### MicroMod Teensy
