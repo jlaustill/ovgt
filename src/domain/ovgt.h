@@ -3,12 +3,9 @@
 class ovgt
 {
     private:
-        static unsigned long count;
-        static unsigned long lastMillis;
-        static unsigned long thisMillis;
-        static unsigned long thisDuration;
-        static unsigned long loopCountLastMillis;
+        static uint32_t count;
         static AppData appData;
+        static void handleDebugTimer();
 
     public:
         static void setup();
