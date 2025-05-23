@@ -9,6 +9,7 @@ uint8_t maxp = 91;
 uint8_t minp = 7;
 
 AppData *Actuator::appData;
+uint8_t Actuator::actuatorPin = 2; // Default to pin 2
 
 
 void canSniff(const CAN_message_t &msg) {
@@ -42,22 +43,24 @@ void Actuator::SetPosition(uint8_t position) {
   }
   int ap = map(position, 0, 100, minp, maxp);
   ap = map(ap, 0, 100, 7, 247);
-  analogWrite(2, ap);
+  analogWrite(actuatorPin, ap);
 }
 
-void Actuator::Initialize(AppData *currentData) {
+void Actuator::Initialize(AppData *currentData, uint8_t pin) {
     appData = currentData;
-  Can0.begin();
-  Can0.setBaudRate(500 * 1000);
-  Can0.setMaxMB(16);
-  Can0.enableFIFO();
-  Can0.enableFIFOInterrupt();
-  Can0.onReceive(canSniff);
-  Can0.mailboxStatus();
+    actuatorPin = pin; // Set the pin from the parameter
+    
+    Can0.begin();
+    Can0.setBaudRate(500 * 1000);
+    Can0.setMaxMB(16);
+    Can0.enableFIFO();
+    Can0.enableFIFOInterrupt();
+    Can0.onReceive(canSniff);
+    Can0.mailboxStatus();
 
-  analogWriteFrequency(2, 300.0);
-  pinMode(2, OUTPUT);
-  SetPosition(p);
+    analogWriteFrequency(actuatorPin, 300.0);
+    pinMode(actuatorPin, OUTPUT);
+    SetPosition(p);
 }
 
 void Actuator::Loop() {
