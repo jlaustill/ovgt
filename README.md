@@ -84,8 +84,8 @@ The following table details how each Teensy pin is used across both Teensy 4.1 a
 | DB7 | 15 | A1 | 38 | A1 |
 | DB8 | 16 | A2 | 20 | UART_RX2 |
 | DB9 | 17 | A3 | 22 | UART_TX2 |
-| DB10 | 18 | A4 | 12 | I2C_SDA |
-| DB11 | 19 | A5 | 14 | I2C_SCL |
+| DB10 | 34 | RX8 | 66 | SDIO_DATA1 |
+| DB11 | 35 | TX8 | 64 | SDIO_DATA0 |
 | DB12 | 20 | A6 | 52 | AUD_LRCLK |
 | DB13 | 21 | A7 | 50 | AUD_BLCK |
 | DB14 | 23 | A9 | 58 | AUD_MCLK | 
@@ -95,6 +95,8 @@ The following table details how each Teensy pin is used across both Teensy 4.1 a
 | RESET | 27 | A13 | 8 | G11 |
 | CONVST_A/B | 29 | TX7 | 16 | I2C_INT |
 | BUSY | 33 | MCLK2 | 63 | G10 |
+| SDA | 18 | SDA | 12 | I2C_SDA |
+| SCL | 19 | SCL | 14 | I2C_SCL |
 
 ---
 
