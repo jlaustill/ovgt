@@ -56,6 +56,7 @@ This project uses a Teensy 4.1 for real-time embedded control of a Variable Geom
 | Actuator CAN RX | 30 | CRX3 |
 | Actuator CAN TX | 31 | CTX3 |
 | FRAM CS | 32 | OUT1B |
+| 5V PSU Power Good | 33 | MCLK2 |
 
 ---
 

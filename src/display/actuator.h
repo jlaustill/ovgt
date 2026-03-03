@@ -6,6 +6,7 @@ class Actuator {
         static void Loop();
         static void CalibrateLoop();
         static void SetPosition(uint8_t position);
+        static void SetPWM(uint8_t pwm);
         static AppData *appData;
     private:
         static uint8_t actuatorPin;

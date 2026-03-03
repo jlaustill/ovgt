@@ -21,13 +21,17 @@ void canSniff(const CAN_message_t &msg) {
     Actuator::appData->actuatorTemp = temp;
 }
 
+// Vane calibration: 0% (closed) = PWM 7, 100% (open) = PWM 201
+// These values will be tuned once installed on the truck
+static const uint8_t VANE_PWM_CLOSED = 7;
+static const uint8_t VANE_PWM_OPEN = 201;
+
 void Actuator::SetPosition(uint8_t position) {
     if (position > 100) {
         position = 100;
     }
-    int ap = map(position, 0, 100, 7, 91);
-    ap = map(ap, 0, 100, 7, 247);
-    analogWrite(actuatorPin, ap);
+    uint8_t pwm = map(position, 0, 100, VANE_PWM_CLOSED, VANE_PWM_OPEN);
+    analogWrite(actuatorPin, pwm);
 }
 
 void Actuator::Initialize(AppData *currentData, uint8_t pin) {
@@ -45,6 +49,10 @@ void Actuator::Initialize(AppData *currentData, uint8_t pin) {
     analogWriteFrequency(actuatorPin, 300.0);
     pinMode(actuatorPin, OUTPUT);
     SetPosition(appData->actuatorDemandedPosition);
+}
+
+void Actuator::SetPWM(uint8_t pwm) {
+    analogWrite(actuatorPin, pwm);
 }
 
 void Actuator::Loop() {
