@@ -9,25 +9,16 @@ uint8_t Actuator::actuatorPin = 2; // Default to pin 2
 
 
 void canSniff(const CAN_message_t &msg) {
-    uint16_t position = (msg.buf[2] << 8) | msg.buf[3];
-    position = map(position, 174, 925, 0, 100);
+    uint16_t rawPosition = (msg.buf[2] << 8) | msg.buf[3];
     uint16_t motorLoad = msg.buf[6] << 8 | msg.buf[7];
     uint8_t status = msg.buf[0];
     uint8_t temp = msg.buf[5];
 
-    Actuator::appData->actuatorReportedPosition = position;
+    Actuator::appData->actuatorRawPosition = rawPosition;
+    Actuator::appData->actuatorReportedPosition = map(rawPosition, 174, 925, 100, 0);
     Actuator::appData->actuatorMotorLoad = motorLoad;
     Actuator::appData->actuatorStatus = status;
     Actuator::appData->actuatorTemp = temp;
- 
-    Serial.print("Position: ");
-    Serial.print(position);
-    Serial.print(" Status: ");
-    Serial.print(msg.buf[0]);
-    Serial.print(" Temp: ");
-    Serial.print(msg.buf[5]);
-    Serial.print("C Load: ");
-    Serial.println(motorLoad);
 }
 
 void Actuator::SetPosition(uint8_t position) {
@@ -60,6 +51,42 @@ void Actuator::Loop() {
     static uint32_t timeout = millis();
     if (millis() - timeout > 100) {
         SetPosition(appData->actuatorDemandedPosition);
+        timeout = millis();
+    }
+}
+
+void Actuator::CalibrateLoop() {
+    static uint16_t pwmValue = 0;
+    static uint32_t timeout = millis();
+    static bool done = false;
+    static bool headerPrinted = false;
+
+    if (done) return;
+
+    if (!headerPrinted) {
+        Serial.println("PWM,RawPosition,Temp,MotorLoad");
+        headerPrinted = true;
+    }
+
+    if (millis() - timeout > 1000) {
+        // Log current PWM and raw feedback
+        Serial.print(pwmValue);
+        Serial.print(",");
+        Serial.print(appData->actuatorRawPosition);
+        Serial.print(",");
+        Serial.print(appData->actuatorTemp);
+        Serial.print(",");
+        Serial.println(appData->actuatorMotorLoad);
+
+        pwmValue++;
+        if (pwmValue > 255) {
+            Serial.println("Calibration complete");
+            analogWrite(actuatorPin, 0);
+            done = true;
+            return;
+        }
+
+        analogWrite(actuatorPin, pwmValue);
         timeout = millis();
     }
 }

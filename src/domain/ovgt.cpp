@@ -14,16 +14,22 @@ uint32_t ovgt::count;
 AppData ovgt::appData;
 
 void ovgt::handleDebugTimer() {
-    // This function is called every 1s
-    // You can add any debug code here
     lcdDisplay.updateDisplay(count);
 
-
-    Serial.print("Loop count/Sec: ");
+    Serial.print("L/S:");
     Serial.print(count);
-    Serial.print(" Boost: ");
+    Serial.print(" Boost:");
     Serial.print(appData.boostPressureHpa);
-    Serial.println(" hPa");
+    Serial.print("hPa Dem:");
+    Serial.print(appData.actuatorDemandedPosition);
+    Serial.print("% Rep:");
+    Serial.print(appData.actuatorReportedPosition);
+    Serial.print("% Tmp:");
+    Serial.print(appData.actuatorTemp);
+    Serial.print("C Load:");
+    Serial.print(appData.actuatorMotorLoad);
+    Serial.print(" S:");
+    Serial.println(appData.actuatorStatus);
     count = 0;
 }
 
@@ -46,7 +52,12 @@ void ovgt::setup() {
 void ovgt::loop() {
     count++;
 
-    BoostSensor::read();
-    BoostController::update();
-    Actuator::Loop();
+    // Calibration mode: sweep PWM 0-255 and log raw CAN feedback
+    // Comment out and uncomment normal loop below when done
+    Actuator::CalibrateLoop();
+
+    // Normal operation:
+    // BoostSensor::read();
+    // BoostController::update();
+    // Actuator::Loop();
 }

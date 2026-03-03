@@ -7,6 +7,7 @@ struct AppData {
     uint8_t actuatorTemp;
     uint8_t actuatorDemandedPosition;
     uint8_t actuatorReportedPosition;
+    uint16_t actuatorRawPosition;
     uint16_t actuatorMotorLoad;
     uint8_t actuatorStatus;
     uint16_t boostPressureHpa;
