@@ -3,6 +3,8 @@
 #include "display/actuator.h"
 #include "AppData.h"
 #include "display/lcdDisplay.h"
+#include "sensors/boostSensor.h"
+#include "control/boostController.h"
 
 IntervalTimer debugTimer;
 
@@ -19,7 +21,9 @@ void ovgt::handleDebugTimer() {
 
     Serial.print("Loop count/Sec: ");
     Serial.print(count);
-    Serial.println("");
+    Serial.print(" Boost: ");
+    Serial.print(appData.boostPressureHpa);
+    Serial.println(" hPa");
     count = 0;
 }
 
@@ -30,6 +34,8 @@ void ovgt::setup() {
 
     count = 0;
     
+    BoostSensor::Initialize(&ovgt::appData);
+    BoostController::Initialize(&ovgt::appData);
     Actuator::Initialize(&ovgt::appData);
 
     debugTimer.begin(handleDebugTimer, 1 * 1000 * 1000); // 1s
@@ -40,5 +46,7 @@ void ovgt::setup() {
 void ovgt::loop() {
     count++;
 
+    BoostSensor::read();
+    BoostController::update();
     Actuator::Loop();
 }
