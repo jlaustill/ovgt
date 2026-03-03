@@ -13,19 +13,19 @@ void LcdDisplay::init(AppData *appData) {
 }
 
 void LcdDisplay::updateDisplay(uint32_t loopCount) {
-        lcd.setCursor(0, 0);
-        snprintf(buffer, 21, "%2d C Motor Load %3d", appData->actuatorTemp, appData->actuatorMotorLoad);
-        lcd.print(buffer);
+    lcd.setCursor(0, 0);
+    snprintf(buffer, 21, "Boost %5u hPa", appData->boostPressureHpa);
+    lcd.print(buffer);
 
-        lcd.setCursor(0, 1);
-        snprintf(buffer, 21, "Status %1d L/S %d", appData->actuatorStatus, loopCount);
-        lcd.print(buffer);
-        
-        lcd.setCursor(0, 2);
-        snprintf(buffer, 21, "Demanded %d   ", (100 - appData->actuatorDemandedPosition));
-        lcd.print(buffer);
+    lcd.setCursor(0, 1);
+    snprintf(buffer, 21, "%2dC Load %5u S:%1d", appData->actuatorTemp, appData->actuatorMotorLoad, appData->actuatorStatus);
+    lcd.print(buffer);
 
-        lcd.setCursor(0, 3);
-        snprintf(buffer, 21, "Reported %d   ", appData->actuatorReportedPosition);
-        lcd.print(buffer);
+    lcd.setCursor(0, 2);
+    snprintf(buffer, 21, "Demanded  %3d%%", appData->actuatorDemandedPosition);
+    lcd.print(buffer);
+
+    lcd.setCursor(0, 3);
+    snprintf(buffer, 21, "Reported  %3d%%", appData->actuatorReportedPosition);
+    lcd.print(buffer);
 }
