@@ -27,8 +27,8 @@ This project uses a Teensy 4.1 for real-time embedded control of a Variable Geom
 
 | Function                    | Interface   | IC/Component                  | Notes |
 |-----------------------------|-------------|-------------------------------|-------|
-| **CAN - J1939**             | CAN via UART (CRX3/CTX3) | SN65HVD232DR         | Shielded, standard CAN |
-| **CAN - Actuator**          | CAN via UART (CRX1/CTX1) | SN65HVD232DR         | Isolated from J1939 bus |
+| **CAN - Actuator**          | CAN via UART (CRX3/CTX3) | SN65HVD232DR         | VGT actuator communication |
+| **CAN - J1939**             | CAN via UART (CRX1/CTX1) | SN65HVD232DR         | Vehicle bus (future) |
 | **PWM Output**              | PWM Pin     | TIP120                        | For VGT actuator control |
 | **LCD Display (Optional)**  | I2C         | 20x4 I2C LCD                  | Status/debug display |
 | **FRAM (Optional)**         | SPI         | ---                            | For logging or configuration |
@@ -45,16 +45,16 @@ This project uses a Teensy 4.1 for real-time embedded control of a Variable Geom
 
 | Function | Teensy Pin | Teensy 4.1 Label |
 |----------|------------|------------------|
-| Actuator CAN RX | 0 | CRX1 |
-| Actuator CAN TX | 1 | CTX1 |
+| J1939 CAN RX (future) | 0 | CRX1 |
+| J1939 CAN TX (future) | 1 | CTX1 |
 | Actuator PWM Out | 2 | PWM |
 | MOSI | 11 | MOSI |
 | MISO | 12 | MISO |
 | SCK | 13 | SCK |
 | SDA | 18 | SDA |
 | SCL | 19 | SCL |
-| J1939 CAN RX | 30 | CRX3 |
-| J1939 CAN TX | 31 | CTX3 |
+| Actuator CAN RX | 30 | CRX3 |
+| Actuator CAN TX | 31 | CTX3 |
 | FRAM CS | 32 | OUT1B |
 
 ---
