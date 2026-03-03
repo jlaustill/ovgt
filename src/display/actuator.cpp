@@ -4,10 +4,6 @@
 #include <FlexCAN_T4.h>
 FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can0;
 
-uint8_t p = 21;
-uint8_t maxp = 91;
-uint8_t minp = 7;
-
 AppData *Actuator::appData;
 uint8_t Actuator::actuatorPin = 2; // Default to pin 2
 
@@ -35,15 +31,12 @@ void canSniff(const CAN_message_t &msg) {
 }
 
 void Actuator::SetPosition(uint8_t position) {
-  if (position > 100) {
-    position = 100;
-
-  } else if (position < 0) {
-    position = 0;
-  }
-  int ap = map(position, 0, 100, minp, maxp);
-  ap = map(ap, 0, 100, 7, 247);
-  analogWrite(actuatorPin, ap);
+    if (position > 100) {
+        position = 100;
+    }
+    int ap = map(position, 0, 100, 7, 91);
+    ap = map(ap, 0, 100, 7, 247);
+    analogWrite(actuatorPin, ap);
 }
 
 void Actuator::Initialize(AppData *currentData, uint8_t pin) {
@@ -60,31 +53,13 @@ void Actuator::Initialize(AppData *currentData, uint8_t pin) {
 
     analogWriteFrequency(actuatorPin, 300.0);
     pinMode(actuatorPin, OUTPUT);
-    SetPosition(p);
+    SetPosition(appData->actuatorDemandedPosition);
 }
 
 void Actuator::Loop() {
- static uint32_t timeout = millis();
-//  static boolean climbing = true;
-  if ( millis() - timeout > 100 ) {
-  SetPosition(p);
-
-    // if (climbing) {
-    //   if (p < 100) {
-    //     p++;
-    //   } else {
-    //     climbing = false;
-    //   }
-    // } else {
-    //   if (p > 0) {
-    //     p--;
-    //   } else {
-    //     climbing = true;
-    //   }
-    // }
-
-    Actuator::appData->actuatorDemandedPosition = p;
-    
-    timeout = millis();
-  }
+    static uint32_t timeout = millis();
+    if (millis() - timeout > 100) {
+        SetPosition(appData->actuatorDemandedPosition);
+        timeout = millis();
+    }
 }
