@@ -4,8 +4,6 @@
 #include "AppData.h"
 #include "display/lcdDisplay.h"
 
-#include <SPI.h>
-
 IntervalTimer debugTimer;
 
 LcdDisplay lcdDisplay(0x27, 20, 4);
