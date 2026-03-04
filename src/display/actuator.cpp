@@ -22,8 +22,8 @@ void canSniff(const CAN_message_t &msg) {
 
 // Vane calibration: 0% (closed) = PWM 7, 100% (open) = PWM 201
 // These values will be tuned once installed on the truck
-static const uint8_t VANE_PWM_CLOSED = 7;
-static const uint8_t VANE_PWM_OPEN = 201;
+static const uint16_t VANE_PWM_CLOSED = 174;
+static const uint16_t VANE_PWM_OPEN = 918;
 
 void Actuator::SetPosition(uint8_t position) {
     if (position > 100) {

@@ -28,6 +28,9 @@ void ovgt::handleDebugTimer() {
     Serial.print(appData.actuatorDemandedPosition);
     Serial.print("% Raw:");
     Serial.print(appData.actuatorRawPosition);
+    uint16_t pos = map(appData.actuatorRawPosition, 918, 174, 0, 100);
+    Serial.print(" Pos:");
+    Serial.print(pos);
     Serial.print(" Tmp:");
     Serial.print(appData.actuatorTemp);
     Serial.print("C S:");
