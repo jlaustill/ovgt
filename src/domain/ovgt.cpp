@@ -19,16 +19,16 @@ bool ovgt::manualMode = false;
 void ovgt::handleDebugTimer() {
     lcdDisplay.updateDisplay(count);
 
-    bool pgGood = digitalRead(PG_PIN);
+    bool pgGood = !digitalRead(PG_PIN);
     Serial.print("PG:");
     Serial.print(pgGood ? "OK" : "FAIL");
     Serial.print(" Boost:");
     Serial.print(appData.boostPressureHpa);
     Serial.print("hPa Dem:");
     Serial.print(appData.actuatorDemandedPosition);
-    Serial.print("% Rep:");
-    Serial.print(appData.actuatorReportedPosition);
-    Serial.print("% Tmp:");
+    Serial.print("% Raw:");
+    Serial.print(appData.actuatorRawPosition);
+    Serial.print(" Tmp:");
     Serial.print(appData.actuatorTemp);
     Serial.print("C S:");
     Serial.println(appData.actuatorStatus);
@@ -94,7 +94,7 @@ void ovgt::loop() {
     }
 
     // Safety: if 5V PSU power good is low, sensor data is unreliable
-    if (!digitalRead(PG_PIN)) {
+    if (digitalRead(PG_PIN)) {
         appData.actuatorDemandedPosition = SAFE_VANE_POSITION;
         Actuator::Loop();
         return;

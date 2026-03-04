@@ -26,6 +26,6 @@ void LcdDisplay::updateDisplay(uint32_t loopCount) {
     lcd.print(buffer);
 
     lcd.setCursor(0, 3);
-    snprintf(buffer, 21, "Reported  %3d%%", appData->actuatorReportedPosition);
+    snprintf(buffer, 21, "Actuator Raw %4u", appData->actuatorRawPosition);
     lcd.print(buffer);
 }

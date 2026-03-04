@@ -6,7 +6,7 @@ AppData *BoostController::appData;
 // Tunable lookup table: pressure (absolute hPa) -> vane position (0-100%)
 // Edit these values and recompile to tune on the truck.
 const PressureMapEntry BoostController::pressureMap[] = {
-    {1000, 21},
+    {1000, 20},
     {1500, 25},
     {2000, 35},
     {3000, 50}

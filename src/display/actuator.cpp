@@ -15,7 +15,6 @@ void canSniff(const CAN_message_t &msg) {
     uint8_t temp = msg.buf[5];
 
     Actuator::appData->actuatorRawPosition = rawPosition;
-    Actuator::appData->actuatorReportedPosition = map(rawPosition, 174, 925, 100, 0);
     Actuator::appData->actuatorMotorLoad = motorLoad;
     Actuator::appData->actuatorStatus = status;
     Actuator::appData->actuatorTemp = temp;
