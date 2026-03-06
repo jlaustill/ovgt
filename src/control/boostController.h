@@ -10,10 +10,9 @@ struct PressureMapEntry {
 
 class BoostController {
     public:
-        static void Initialize(AppData *appData);
+        static void Initialize();
         static void update();
     private:
-        static AppData *appData;
         static const PressureMapEntry pressureMap[];
         static const uint8_t pressureMapSize;
         static uint8_t interpolate(uint16_t pressureHpa);

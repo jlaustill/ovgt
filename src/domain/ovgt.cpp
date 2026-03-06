@@ -3,15 +3,16 @@
 #include "display/actuator.h"
 #include "AppData.h"
 #include "display/lcdDisplay.h"
-#include "sensors/boostSensor.h"
+#include "sensors/adcSensors.h"
 #include "control/boostController.h"
 
 IntervalTimer debugTimer;
 
 LcdDisplay lcdDisplay(0x27, 20, 4);
 
+AppData appData;
+
 uint32_t ovgt::count;
-AppData ovgt::appData;
 
 uint8_t ovgt::manualPwm = 0;
 bool ovgt::manualMode = false;
@@ -24,6 +25,12 @@ void ovgt::handleDebugTimer() {
     Serial.print(pgGood ? "OK" : "FAIL");
     Serial.print(" Boost:");
     Serial.print(appData.boostPressureHpa);
+    Serial.print("hPa CIP:");
+    Serial.print(appData.compressorInputPressureHpa);
+    Serial.print("hPa CIT:");
+    Serial.print(appData.compressorInputTempC);
+    Serial.print("C TIP:");
+    Serial.print(appData.turbineInputPressureHpa);
     Serial.print("hPa Dem:");
     Serial.print(appData.actuatorDemandedPosition);
     Serial.print("% Raw:");
@@ -41,14 +48,14 @@ void ovgt::handleDebugTimer() {
 
 void ovgt::setup() {
     Serial.begin(115200);
-    lcdDisplay.init(&ovgt::appData);
+    lcdDisplay.init();
 
     count = 0;
     pinMode(PG_PIN, INPUT);
 
-    BoostSensor::Initialize(&ovgt::appData);
-    BoostController::Initialize(&ovgt::appData);
-    Actuator::Initialize(&ovgt::appData);
+    AdcSensors::Initialize();
+    BoostController::Initialize();
+    Actuator::Initialize();
 
     debugTimer.begin(handleDebugTimer, 1 * 1000 * 1000); // 1s
 
@@ -103,7 +110,7 @@ void ovgt::loop() {
         return;
     }
 
-    BoostSensor::read();
+    AdcSensors::update();
     BoostController::update();
     Actuator::Loop();
 }

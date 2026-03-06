@@ -11,6 +11,11 @@ struct AppData {
     uint16_t actuatorMotorLoad;
     uint8_t actuatorStatus;
     uint16_t boostPressureHpa;
+    int16_t compressorInputTempC;
+    uint16_t compressorInputPressureHpa;
+    uint16_t turbineInputPressureHpa;
 };
+
+extern AppData appData;
 
 #endif

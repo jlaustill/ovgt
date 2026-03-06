@@ -6,7 +6,6 @@ class ovgt
         static const uint8_t PG_PIN = 33;
         static const uint8_t SAFE_VANE_POSITION = 95;
         static uint32_t count;
-        static AppData appData;
         static uint8_t manualPwm;
         static bool manualMode;
         static void handleDebugTimer();

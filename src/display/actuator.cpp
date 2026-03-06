@@ -4,9 +4,15 @@
 #include <FlexCAN_T4.h>
 FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_16> Can0;
 
-AppData *Actuator::appData;
 uint8_t Actuator::actuatorPin = 2; // Default to pin 2
 
+// PWM calibration (output to actuator): 0% open = PWM 100, 100% open = PWM 247
+static const uint8_t VANE_PWM_CLOSED = 100;
+static const uint8_t VANE_PWM_OPEN = 247;
+
+// CAN raw position feedback range (reported by actuator over CAN)
+static const uint16_t VANE_CAN_RAW_CLOSED = 918;
+static const uint16_t VANE_CAN_RAW_OPEN = 174;
 
 void canSniff(const CAN_message_t &msg) {
     uint16_t rawPosition = (msg.buf[2] << 8) | msg.buf[3];
@@ -14,16 +20,12 @@ void canSniff(const CAN_message_t &msg) {
     uint8_t status = msg.buf[0];
     uint8_t temp = msg.buf[5];
 
-    Actuator::appData->actuatorRawPosition = rawPosition;
-    Actuator::appData->actuatorMotorLoad = motorLoad;
-    Actuator::appData->actuatorStatus = status;
-    Actuator::appData->actuatorTemp = temp;
+    appData.actuatorRawPosition = rawPosition;
+    appData.actuatorMotorLoad = motorLoad;
+    appData.actuatorStatus = status;
+    appData.actuatorTemp = temp;
+    appData.actuatorReportedPosition = map(rawPosition, VANE_CAN_RAW_CLOSED, VANE_CAN_RAW_OPEN, 0, 100);
 }
-
-// Vane calibration: 0% (closed) = PWM 7, 100% (open) = PWM 201
-// These values will be tuned once installed on the truck
-static const uint16_t VANE_PWM_CLOSED = 174;
-static const uint16_t VANE_PWM_OPEN = 918;
 
 void Actuator::SetPosition(uint8_t position) {
     if (position > 100) {
@@ -33,9 +35,8 @@ void Actuator::SetPosition(uint8_t position) {
     analogWrite(actuatorPin, pwm);
 }
 
-void Actuator::Initialize(AppData *currentData, uint8_t pin) {
-    appData = currentData;
-    actuatorPin = pin; // Set the pin from the parameter
+void Actuator::Initialize(uint8_t pin) {
+    actuatorPin = pin;
     
     Can0.begin();
     Can0.setBaudRate(500 * 1000);
@@ -47,7 +48,7 @@ void Actuator::Initialize(AppData *currentData, uint8_t pin) {
 
     analogWriteFrequency(actuatorPin, 300.0);
     pinMode(actuatorPin, OUTPUT);
-    SetPosition(appData->actuatorDemandedPosition);
+    SetPosition(appData.actuatorDemandedPosition);
 }
 
 void Actuator::SetPWM(uint8_t pwm) {
@@ -57,7 +58,7 @@ void Actuator::SetPWM(uint8_t pwm) {
 void Actuator::Loop() {
     static uint32_t timeout = millis();
     if (millis() - timeout > 100) {
-        SetPosition(appData->actuatorDemandedPosition);
+        SetPosition(appData.actuatorDemandedPosition);
         timeout = millis();
     }
 }
@@ -79,11 +80,11 @@ void Actuator::CalibrateLoop() {
         // Log current PWM and raw feedback
         Serial.print(pwmValue);
         Serial.print(",");
-        Serial.print(appData->actuatorRawPosition);
+        Serial.print(appData.actuatorRawPosition);
         Serial.print(",");
-        Serial.print(appData->actuatorTemp);
+        Serial.print(appData.actuatorTemp);
         Serial.print(",");
-        Serial.println(appData->actuatorMotorLoad);
+        Serial.println(appData.actuatorMotorLoad);
 
         pwmValue++;
         if (pwmValue > 255) {
