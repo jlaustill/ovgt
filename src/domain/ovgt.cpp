@@ -12,36 +12,55 @@ LcdDisplay lcdDisplay(0x27, 20, 4);
 
 AppData appData;
 
-uint32_t ovgt::count;
+volatile uint32_t ovgt::count;
+volatile bool ovgt::debugFlag = false;
 
 uint8_t ovgt::manualPwm = 0;
 bool ovgt::manualMode = false;
 
 void ovgt::handleDebugTimer() {
+    debugFlag = true;
+}
+
+void ovgt::handleDebug() {
+    if (!debugFlag) return;
+    debugFlag = false;
+
     lcdDisplay.updateDisplay(count);
 
     bool pgGood = !digitalRead(PG_PIN);
     Serial.print("PG:");
     Serial.print(pgGood ? "OK" : "FAIL");
-    Serial.print(" Boost:");
+    Serial.print(" COP:");
     Serial.print(appData.boostPressureHpa);
-    Serial.print("hPa CIP:");
-    Serial.print(appData.compressorInputPressureHpa);
-    Serial.print("hPa CIT:");
-    Serial.print(appData.compressorInputTempC);
-    Serial.print("C TIP:");
+    Serial.print("hPa Boost:");
+    int16_t boostGauge = (int16_t)appData.boostPressureHpa - (int16_t)appData.ambientPressureGuessHpa;
+    Serial.print(boostGauge);
+    Serial.print("hPa TIPv:");
+    Serial.print(appData.turbineInputVoltage, 3);
+    Serial.print("V TIP:");
     Serial.print(appData.turbineInputPressureHpa);
+    Serial.print("hPa BR:");
+    if (boostGauge != 0) {
+        Serial.print((float)appData.turbineInputPressureHpa / boostGauge, 2);
+    } else {
+        Serial.print("\xe2\x88\x9e");
+    }
+    Serial.print(" Amb:");
+    Serial.print(appData.ambientPressureGuessHpa);
     Serial.print("hPa Dem:");
-    Serial.print(appData.actuatorDemandedPosition);
-    Serial.print("% Raw:");
-    Serial.print(appData.actuatorRawPosition);
-    uint16_t pos = map(appData.actuatorRawPosition, 918, 174, 0, 100);
+    if (manualMode) {
+        Serial.print(manualPwm);
+        Serial.print("%");
+    } else {
+        Serial.print(appData.actuatorDemandedPosition);
+        Serial.print("%");
+    }
+    Serial.print(" Mode:");
+    Serial.print(manualMode ? "MANUAL" : "AUTO");
     Serial.print(" Pos:");
-    Serial.print(pos);
-    Serial.print(" Tmp:");
-    Serial.print(appData.actuatorTemp);
-    Serial.print("C S:");
-    Serial.println(appData.actuatorStatus);
+    Serial.print(appData.actuatorReportedPosition);
+    Serial.println("%");
     count = 0;
 }
 
@@ -51,6 +70,7 @@ void ovgt::setup() {
     lcdDisplay.init();
 
     count = 0;
+    appData.ambientPressureGuessHpa = 10000;
     pinMode(PG_PIN, INPUT);
 
     AdcSensors::Initialize();
@@ -60,7 +80,7 @@ void ovgt::setup() {
     debugTimer.begin(handleDebugTimer, 1 * 1000 * 1000); // 1s
 
     Serial.println("Setup complete");
-    Serial.println("Type a number 0-247 to set PWM, or 'auto' for normal operation");
+    Serial.println("Type a number 0-100 to set vane position %, or 'auto' for normal operation");
 }
 
 void ovgt::handleSerial() {
@@ -77,14 +97,15 @@ void ovgt::handleSerial() {
                 Serial.println("Switched to auto mode");
             } else {
                 int val = atoi(buf);
-                if (val >= 0 && val <= 247) {
+                if (val >= 0 && val <= 100) {
                     manualPwm = (uint8_t)val;
                     manualMode = true;
-                    Actuator::SetPWM(manualPwm);
-                    Serial.print("PWM set to ");
-                    Serial.println(manualPwm);
+                    Actuator::SetPosition(manualPwm);
+                    Serial.print("Position set to ");
+                    Serial.print(manualPwm);
+                    Serial.println("%");
                 } else {
-                    Serial.println("Invalid: 0-247 or 'auto'");
+                    Serial.println("Invalid: 0-100 or 'auto'");
                 }
             }
             idx = 0;
@@ -97,11 +118,7 @@ void ovgt::handleSerial() {
 void ovgt::loop() {
     count++;
     handleSerial();
-
-    if (manualMode) {
-        // Manual PWM hold — actuator stays at last set value
-        return;
-    }
+    handleDebug();
 
     // Safety: if 5V PSU power good is low, sensor data is unreliable
     if (digitalRead(PG_PIN)) {
@@ -111,6 +128,15 @@ void ovgt::loop() {
     }
 
     AdcSensors::update();
+    if (appData.boostPressureHpa > 500 && appData.boostPressureHpa < appData.ambientPressureGuessHpa) {
+        appData.ambientPressureGuessHpa = appData.boostPressureHpa;
+    }
+
+    if (manualMode) {
+        // Manual position hold — actuator stays at last set value, sensors keep running
+        return;
+    }
+
     BoostController::update();
     Actuator::Loop();
 }

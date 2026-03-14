@@ -1,13 +1,13 @@
 #include <Arduino.h>
 #include "boostController.h"
 
-// Tunable lookup table: pressure (absolute hPa) -> vane position (0-100%)
+// Tunable lookup table: gauge boost (hPa above ambient) -> vane position (0-100%)
 // Edit these values and recompile to tune on the truck.
 const PressureMapEntry BoostController::pressureMap[] = {
-    {1000, 18},
-    {1500, 22},
-    {2000, 24},
-    {3000, 26}
+    {0, 18},
+    {250, 20},
+    {500, 28},
+    {3000, 95}
 };
 const uint8_t BoostController::pressureMapSize = sizeof(pressureMap) / sizeof(pressureMap[0]);
 
@@ -16,7 +16,9 @@ void BoostController::Initialize() {
 }
 
 void BoostController::update() {
-    uint8_t position = interpolate(appData.boostPressureHpa);
+    int16_t gaugeBoost = (int16_t)appData.boostPressureHpa - (int16_t)appData.ambientPressureGuessHpa;
+    if (gaugeBoost < 0) gaugeBoost = 0;
+    uint8_t position = interpolate((uint16_t)gaugeBoost);
     appData.actuatorDemandedPosition = position;
 }
 

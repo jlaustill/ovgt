@@ -5,10 +5,12 @@ class ovgt
     private:
         static const uint8_t PG_PIN = 33;
         static const uint8_t SAFE_VANE_POSITION = 95;
-        static uint32_t count;
+        static volatile uint32_t count;
         static uint8_t manualPwm;
         static bool manualMode;
+        static volatile bool debugFlag;
         static void handleDebugTimer();
+        static void handleDebug();
         static void handleSerial();
 
     public:

@@ -14,6 +14,8 @@ struct AppData {
     int16_t compressorInputTempC;
     uint16_t compressorInputPressureHpa;
     uint16_t turbineInputPressureHpa;
+    float turbineInputVoltage;
+    uint16_t ambientPressureGuessHpa;
 };
 
 extern AppData appData;
