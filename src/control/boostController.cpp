@@ -1,44 +1,47 @@
 #include <Arduino.h>
 #include "boostController.h"
 
-// Tunable lookup table: gauge boost (hPa above ambient) -> vane position (0-100%)
+// Tunable lookup table: gauge boost (PSI above ambient) -> vane position (0-100%)
 // Edit these values and recompile to tune on the truck.
 const PressureMapEntry BoostController::pressureMap[] = {
-    {0, 18},
-    {250, 20},
-    {500, 28},
-    {3000, 95}
+    {0.0f, 30},
+    {2.0f, 40},
+    {7.3f, 50},
+    {53.5f, 68}
 };
 const uint8_t BoostController::pressureMapSize = sizeof(pressureMap) / sizeof(pressureMap[0]);
+
+static const float HPA_TO_PSI = 0.0145038f;
 
 void BoostController::Initialize() {
     Serial.println("BoostController initialized");
 }
 
 void BoostController::update() {
-    int16_t gaugeBoost = (int16_t)appData.boostPressureHpa - (int16_t)appData.ambientPressureGuessHpa;
-    if (gaugeBoost < 0) gaugeBoost = 0;
-    uint8_t position = interpolate((uint16_t)gaugeBoost);
+    int16_t gaugeBoostHpa = (int16_t)appData.boostPressureHpa - (int16_t)appData.ambientPressureGuessHpa;
+    if (gaugeBoostHpa < 0) gaugeBoostHpa = 0;
+    float gaugeBoostPsi = gaugeBoostHpa * HPA_TO_PSI;
+    uint8_t position = interpolate(gaugeBoostPsi);
     appData.actuatorDemandedPosition = position;
 }
 
-uint8_t BoostController::interpolate(uint16_t pressureHpa) {
+uint8_t BoostController::interpolate(float pressurePsi) {
     // Clamp below first entry
-    if (pressureHpa <= pressureMap[0].pressureHpa) {
+    if (pressurePsi <= pressureMap[0].pressurePsi) {
         return pressureMap[0].positionPercent;
     }
     // Clamp above last entry
-    if (pressureHpa >= pressureMap[pressureMapSize - 1].pressureHpa) {
+    if (pressurePsi >= pressureMap[pressureMapSize - 1].pressurePsi) {
         return pressureMap[pressureMapSize - 1].positionPercent;
     }
     // Find bracketing entries and interpolate
     for (uint8_t i = 1; i < pressureMapSize; i++) {
-        if (pressureHpa <= pressureMap[i].pressureHpa) {
-            uint16_t pLow = pressureMap[i - 1].pressureHpa;
-            uint16_t pHigh = pressureMap[i].pressureHpa;
+        if (pressurePsi <= pressureMap[i].pressurePsi) {
+            float pLow = pressureMap[i - 1].pressurePsi;
+            float pHigh = pressureMap[i].pressurePsi;
             uint8_t posLow = pressureMap[i - 1].positionPercent;
             uint8_t posHigh = pressureMap[i].positionPercent;
-            return posLow + (uint8_t)(((uint32_t)(pressureHpa - pLow) * (posHigh - posLow)) / (pHigh - pLow));
+            return posLow + (uint8_t)((pressurePsi - pLow) / (pHigh - pLow) * (posHigh - posLow));
         }
     }
     return pressureMap[pressureMapSize - 1].positionPercent;

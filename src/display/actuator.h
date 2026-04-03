@@ -9,4 +9,7 @@ class Actuator {
         static void SetPWM(uint8_t pwm);
     private:
         static uint8_t actuatorPin;
+        static IntervalTimer canTimer;
+        static void SendCanPosition(uint8_t position);
+        static void handleCanTimer();
 };

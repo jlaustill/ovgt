@@ -121,12 +121,12 @@ void AdcSensors::processResult(uint8_t channel, float voltage) {
             break;
         }
         case 3: {
-            // Turbine input pressure: 150 PSI, 0.5–4.5V
-            // hPa = (V - 0.5) * 2585.75
+            // Turbine input pressure: 100 PSIG, 0.5–4.5V
+            // hPa = (V - 0.5) * 1723.69
             appData.turbineInputVoltage = voltage;
-            float hPa = (voltage - 0.5f) * 2585.75f;
+            float hPa = (voltage - 0.5f) * 1723.69f;
             if (hPa < 0.0f) hPa = 0.0f;
-            if (hPa > 10343.0f) hPa = 10343.0f;
+            if (hPa > 6895.0f) hPa = 6895.0f;
             appData.turbineInputPressureHpa = (uint16_t)hPa;
             break;
         }

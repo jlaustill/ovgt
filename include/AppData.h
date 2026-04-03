@@ -5,7 +5,7 @@
 
 struct AppData {
     uint8_t actuatorTemp;
-    uint8_t actuatorDemandedPosition;
+    volatile uint8_t actuatorDemandedPosition;
     uint8_t actuatorReportedPosition;
     uint16_t actuatorRawPosition;
     uint16_t actuatorMotorLoad;
@@ -16,8 +16,11 @@ struct AppData {
     uint16_t turbineInputPressureHpa;
     float turbineInputVoltage;
     uint16_t ambientPressureGuessHpa;
+    bool pgFault;
 };
 
 extern AppData appData;
+
+static const bool ACTUATOR_MODE_CAN = true;
 
 #endif
