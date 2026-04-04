@@ -7,6 +7,7 @@
 
 IntervalTimer debugTimer;
 elapsedMillis loopElapsed;
+elapsedMicros adcElapsed;
 
 AppData appData;
 
@@ -37,42 +38,15 @@ void ovgt::handleDebug() {
         snprintf(brBuf, sizeof(brBuf), "\xe2\x88\x9e");
     }
 
-    char buf[160];
-    snprintf(buf, sizeof(buf),
-        "PG:%s COP:%uhPa Boost:%dhPa(%.1fpsi) TIPv:%.3fV TIP:%uhPa BR:%s Amb:%uhPa Dem:%u%% Mode:%s Pos:%u%%",
-        appData.pgFault ? "FAULT" : "OK",
-        appData.boostPressureHpa,
-        boostGauge,
+    char buf[96];
+    snprintf(buf, sizeof(buf), "Boost:%.1fpsi BPR:%s Dem:%u%% Pos:%u%% TIPv:%.3f",
         (double)(boostGauge * 0.0145038f),
-        (double)appData.turbineInputVoltage,
-        appData.turbineInputPressureHpa,
         brBuf,
-        appData.ambientPressureGuessHpa,
         manualMode ? manualPwm : appData.actuatorDemandedPosition,
-        BoostController::benchMode ? "BENCH" : (manualMode ? "MANUAL" : "AUTO"),
-        appData.actuatorReportedPosition);
+        appData.actuatorReportedPosition,
+        (double)appData.turbineInputVoltage);
     Serial.println(buf);
 
-    char pidBuf[80];
-    snprintf(pidBuf, sizeof(pidBuf), "  PID:%s BPR:%.2f->%.2f Out:%u%%",
-        appData.pidActive ? "ACTIVE" : "OFF",
-        (double)appData.currentBpr,
-        (double)appData.targetBpr,
-        appData.actuatorDemandedPosition);
-    Serial.println(pidBuf);
-
-    if (count > 0) {
-        uint32_t totalUs = (cyclesAdc + cyclesBoost + cyclesActuator + cyclesDebug) / 600;
-        snprintf(buf, sizeof(buf), "  loops:%lu us/s ADC:%lu Boost:%lu Act:%lu Dbg:%lu total:%lu (%.1f%%)",
-            count,
-            cyclesAdc / 600,
-            cyclesBoost / 600,
-            cyclesActuator / 600,
-            cyclesDebug / 600,
-            totalUs,
-            (double)totalUs / 10000.0);
-        Serial.println(buf);
-    }
     count = 0;
     cyclesAdc = 0;
     cyclesBoost = 0;
@@ -98,11 +72,11 @@ void ovgt::setup() {
     debugTimer.begin(handleDebugTimer, 1 * 1000 * 1000); // 1s
 
     Serial.println("Setup complete");
-    Serial.println("Commands: 0-100 (manual), 'auto', 'bench', 'bpr <val>', 'pid', 'pid <Kp> <Ki> <Kd>'");
+    Serial.println("Type a number 0-100 to set vane position %, or 'auto' for normal operation");
 }
 
 void ovgt::handleSerial() {
-    static char buf[32];
+    static char buf[16];
     static uint8_t idx = 0;
 
     while (Serial.available()) {
@@ -112,55 +86,22 @@ void ovgt::handleSerial() {
             buf[idx] = '\0';
             if (strcmp(buf, "auto") == 0) {
                 manualMode = false;
-                BoostController::benchMode = false;
                 Serial.println("Switched to auto mode");
-            } else if (strcmp(buf, "bench") == 0) {
-                manualMode = false;
-                BoostController::benchMode = true;
-                BoostController::benchTarget = 51.0f;
-                Serial.println("Bench mode: type 0-100 to set target, 'auto' to exit");
-            } else if (strncmp(buf, "bpr ", 4) == 0) {
-                float bpr = atof(buf + 4);
-                BoostController::setTargetBpr(bpr);
-                Serial.print("BPR target set to ");
-                Serial.println(BoostController::getTargetBpr());
-            } else if (strcmp(buf, "pid") == 0) {
-                float kp, ki, kd;
-                BoostController::getTunings(kp, ki, kd);
-                char tbuf[64];
-                snprintf(tbuf, sizeof(tbuf), "PID tunings: Kp=%.2f Ki=%.2f Kd=%.2f",
-                    (double)kp, (double)ki, (double)kd);
-                Serial.println(tbuf);
-            } else if (strncmp(buf, "pid ", 4) == 0) {
-                float kp, ki, kd;
-                if (sscanf(buf + 4, "%f %f %f", &kp, &ki, &kd) == 3) {
-                    BoostController::setTunings(kp, ki, kd);
-                    Serial.println("PID tunings updated");
-                } else {
-                    Serial.println("Usage: pid <Kp> <Ki> <Kd>");
-                }
             } else {
                 int val = atoi(buf);
                 if (val >= 0 && val <= 100) {
-                    if (BoostController::benchMode) {
-                        BoostController::benchTarget = (float)val;
-                        Serial.print("Bench target set to ");
-                        Serial.print(val);
-                        Serial.println("%");
-                    } else {
-                        manualPwm = (uint8_t)val;
-                        manualMode = true;
-                        appData.actuatorDemandedPosition = manualPwm;
-                        Serial.print("Position set to ");
-                        Serial.print(manualPwm);
-                        Serial.println("%");
-                    }
+                    manualPwm = (uint8_t)val;
+                    manualMode = true;
+                    appData.actuatorDemandedPosition = manualPwm;
+                    Serial.print("Position set to ");
+                    Serial.print(manualPwm);
+                    Serial.println("%");
                 } else {
                     Serial.println("Invalid: 0-100 or 'auto'");
                 }
             }
             idx = 0;
-        } else if (idx < 31) {
+        } else if (idx < 15) {
             buf[idx++] = c;
         }
     }
@@ -168,6 +109,12 @@ void ovgt::handleSerial() {
 
 void ovgt::loop() {
     handleSerial();
+
+    // ADC runs at ~860 SPS (1.2ms per conversion)
+    if (adcElapsed >= 1200) {
+        adcElapsed = 0;
+        AdcSensors::update();
+    }
 
     if (loopElapsed < 10) return;
     loopElapsed = 0;
@@ -181,11 +128,6 @@ void ovgt::loop() {
     cyclesDebug += t1 - t0;
 
     appData.pgFault = digitalRead(PG_PIN);
-
-    t0 = ARM_DWT_CYCCNT;
-    AdcSensors::update();
-    t1 = ARM_DWT_CYCCNT;
-    cyclesAdc += t1 - t0;
 
     if (appData.boostPressureHpa > 500 && appData.boostPressureHpa < appData.ambientPressureGuessHpa) {
         appData.ambientPressureGuessHpa = appData.boostPressureHpa;

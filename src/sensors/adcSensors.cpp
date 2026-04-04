@@ -5,9 +5,9 @@
 
 static Adafruit_ADS1115 ads;
 
-static const uint8_t NUM_CHANNELS = 4;
-static const uint32_t CONVERSION_TIMEOUT_MS = 15;
+static const uint32_t CONVERSION_TIMEOUT_MS = 5;
 static const uint8_t READY_PIN = 41;
+static const float TIP_ZERO_SAFETY_MIN = 0.25f;
 
 // ADS1115 single-ended mux configs for channels 0-3
 static const uint16_t MUX_CONFIG[] = {
@@ -40,9 +40,12 @@ static void IRAM_ATTR ConversionReadyISR() {
 uint8_t AdcSensors::currentChannel = 0;
 bool AdcSensors::conversionStarted = false;
 uint32_t AdcSensors::conversionStartTime = 0;
+float AdcSensors::ema[NUM_CHANNELS] = {0};
+bool AdcSensors::emaInitialized[NUM_CHANNELS] = {false};
 
 void AdcSensors::Initialize() {
     ads.setGain(GAIN_TWOTHIRDS); // +/-6.144V range for 5V sensors
+    ads.setDataRate(RATE_ADS1115_860SPS);
     ads.begin();
 
     pinMode(READY_PIN, INPUT);
@@ -50,6 +53,18 @@ void AdcSensors::Initialize() {
 
     currentChannel = 0;
     conversionStarted = false;
+
+    // Seed TIP zero voltage from a blocking read with engine off
+    int16_t raw = ads.readADC_SingleEnded(3);
+    float tipV = ads.computeVolts(raw);
+    if (tipV >= TIP_ZERO_SAFETY_MIN && tipV < 1.0f) {
+        appData.tipZeroVoltage = tipV;
+    } else {
+        appData.tipZeroVoltage = 0.5f;
+    }
+    Serial.print("TIP zero calibrated: ");
+    Serial.print(appData.tipZeroVoltage, 4);
+    Serial.println("V");
 
     Serial.println("AdcSensors initialized (4-channel round-robin)");
 }
@@ -67,10 +82,9 @@ void AdcSensors::update() {
         return;
     }
 
-    // Check for timeout
+    // Check for timeout — retry same channel
     if (millis() - conversionStartTime > CONVERSION_TIMEOUT_MS) {
         conversionStarted = false;
-        currentChannel = (currentChannel + 1) % NUM_CHANNELS;
         return;
     }
 
@@ -79,12 +93,18 @@ void AdcSensors::update() {
         return;
     }
 
-    // Read result and process
+    // Read result, apply EMA, process, advance
     int16_t raw = ads.getLastConversionResults();
     float voltage = ads.computeVolts(raw);
-    processResult(currentChannel, voltage);
 
-    // Advance to next channel
+    if (!emaInitialized[currentChannel]) {
+        ema[currentChannel] = voltage;
+        emaInitialized[currentChannel] = true;
+    } else {
+        ema[currentChannel] += EMA_ALPHA * (voltage - ema[currentChannel]);
+    }
+
+    processResult(currentChannel, ema[currentChannel]);
     conversionStarted = false;
     currentChannel = (currentChannel + 1) % NUM_CHANNELS;
 }
@@ -121,10 +141,13 @@ void AdcSensors::processResult(uint8_t channel, float voltage) {
             break;
         }
         case 3: {
-            // Turbine input pressure: 100 PSIG, 0.5–4.5V
-            // hPa = (V - 0.5) * 1723.69
+            // Turbine input pressure: 100 PSIG, 0.5–4.5V (nominal)
+            // Zero offset tracked per-session to handle sensor tolerance
             appData.turbineInputVoltage = voltage;
-            float hPa = (voltage - 0.5f) * 1723.69f;
+            if (voltage < appData.tipZeroVoltage && voltage >= TIP_ZERO_SAFETY_MIN) {
+                appData.tipZeroVoltage = voltage;
+            }
+            float hPa = (voltage - appData.tipZeroVoltage) * 1723.69f;
             if (hPa < 0.0f) hPa = 0.0f;
             if (hPa > 6895.0f) hPa = 6895.0f;
             appData.turbineInputPressureHpa = (uint16_t)hPa;
