@@ -7,6 +7,7 @@
 #include "sensors/cotSensor.h"
 #include "sensors/citSensor.h"
 #include "sensors/totSensor.h"
+#include "storage/fram.h"
 #include "sensors/j1939.h"
 #include "control/boostController.h"
 
@@ -74,11 +75,18 @@ void ovgt::setup() {
     appData.ambientPressureGuessHpa = 10000;
     pinMode(PG_PIN, INPUT);
 
+    // Drive all SPI CS pins high before initializing any SPI device
+    for (uint8_t pin : {3, 4, 5, 10, 24, 25, 26, 35, 37, 38, 39, 40}) {
+        pinMode(pin, OUTPUT);
+        digitalWrite(pin, HIGH);
+    }
+
     // AdcSensors::Initialize();
     TitSensor::Initialize();
     // CotSensor::Initialize();
     // CitSensor::Initialize();
     // TotSensor::Initialize();
+    Fram::Initialize();
     // BoostController::Initialize();
     Actuator::Initialize();
     J1939::Initialize();
