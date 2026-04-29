@@ -18,6 +18,8 @@ An open-source Variable Geometry Turbo controller for Teensy 4.1.
 ### Optional Components
 - 20x4 I2C LCD Display (for debugging or status output)
 - [FRAM Memory](https://www.cypress.com/products/serial-fram) (for non-volatile config/logging, SPI)
+- ADS1115 x2 (16-bit ADC, I2C, for analog sensors)
+- MAX31856 x4 (thermocouple amplifier, SPI)
 
 ## System Overview
 
@@ -32,6 +34,12 @@ This project uses a Teensy 4.1 for real-time embedded control of a Variable Geom
 | **PWM Output**              | PWM Pin     | TIP120                        | For VGT actuator control |
 | **LCD Display (Optional)**  | I2C         | 20x4 I2C LCD                  | Status/debug display |
 | **FRAM (Optional)**         | SPI         | ---                            | For logging or configuration |
+| **ADS1115 #1 (Optional)**   | I2C (0x48)  | ADS1115                       | Analog sensors (ADDR→GND) |
+| **ADS1115 #2 (Optional)**   | I2C (0x49)  | ADS1115                       | Analog sensors (ADDR→VDD) |
+| **MAX31856 #1 (Optional)**  | SPI         | MAX31856                      | Thermocouple input |
+| **MAX31856 #2 (Optional)**  | SPI         | MAX31856                      | Thermocouple input |
+| **MAX31856 #3 (Optional)**  | SPI         | MAX31856                      | Thermocouple input |
+| **MAX31856 #4 (Optional)**  | SPI         | MAX31856                      | Thermocouple input |
 
 ### Power
 
@@ -48,15 +56,62 @@ This project uses a Teensy 4.1 for real-time embedded control of a Variable Geom
 | J1939 CAN RX (future) | 0 | CRX1 |
 | J1939 CAN TX (future) | 1 | CTX1 |
 | Actuator PWM Out | 2 | PWM |
-| MOSI | 11 | MOSI |
-| MISO | 12 | MISO |
-| SCK | 13 | SCK |
-| SDA | 18 | SDA |
-| SCL | 19 | SCL |
+| MAX31856 #3 CS | 5 | - |
+| MAX31856 #3 DRDY | 3 | - |
+| MAX31856 #3 FLT | 4 | - |
+| MAX31856 #4 CS | 26 | - |
+| MAX31856 #4 DRDY | 24 | - |
+| MAX31856 #4 FLT | 25 | - |
+| FRAM HOLD | 8 | - |
+| FRAM WP (Write Protect) | 9 | - |
+| FRAM CS | 10 | CS |
+| MOSI (FRAM SI / MAX31856 SDI) | 11 | MOSI |
+| MISO (FRAM SO / MAX31856 SDO) | 12 | MISO |
+| SCK (FRAM / MAX31856) | 13 | SCK |
+| SDA (ADS1115 / LCD) | 18 | SDA |
+| SCL (ADS1115 / LCD) | 19 | SCL |
+| ADS1115 #2 ALERT/RDY (I2C addr 0x49) | 21 | - |
 | Actuator CAN RX | 30 | CRX3 |
 | Actuator CAN TX | 31 | CTX3 |
-| FRAM CS | 32 | OUT1B |
 | 5V PSU Power Good | 33 | MCLK2 |
+| MAX31856 #1 CS | 37 | - |
+| MAX31856 #1 DRDY | 35 | - |
+| MAX31856 #1 FLT | 36 | - |
+| MAX31856 #2 CS | 40 | - |
+| MAX31856 #2 DRDY | 38 | - |
+| MAX31856 #2 FLT | 39 | - |
+| ADS1115 #1 ALERT/RDY (I2C addr 0x48) | 41 | - |
+
+---
+
+## Sensor Channels
+
+### ADS1115 #1 (I2C 0x48 — ADDR→GND)
+
+| Channel | Sensor | Type | Notes |
+|---------|--------|------|-------|
+| A0 | COP — Compressor Output Pressure | 0.5–4.5V pressure transducer | 10 bar MAP |
+| A1 | CIP — Compressor Input Pressure | 0.5–4.5V pressure transducer | 1 bar / 15 PSI |
+| A2 | CIT — Compressor Input Temperature | GM NTC thermistor, 2.2kΩ pulldown | Atmospheric turbo only; use MAX31856 for primary |
+| A3 | TIP — Turbine Input Pressure | 0.5–4.5V pressure transducer | 100 PSIG, zero-offset calibrated at startup |
+
+### ADS1115 #2 (I2C 0x49 — ADDR→VDD)
+
+| Channel | Sensor | Type | Notes |
+|---------|--------|------|-------|
+| A0 | Lift Pump Pressure (temporary, until OSSM) | 0.5–4.5V pressure transducer | |
+| A1 | TOP — Turbine Output Pressure | 0.5–4.5V pressure transducer | |
+| A2 | Oil Temp | - | |
+| A3 | Oil Pressure | 0.5–4.5V pressure transducer | |
+
+### MAX31856 Thermocouple Channels
+
+| IC | Sensor | Notes |
+|----|--------|-------|
+| MAX31856 #1 | COT — Compressor Output Temperature | |
+| MAX31856 #2 | CIT — Compressor Input Temperature | Primary turbo only; use ADS1115 #1 A2 for atmospheric |
+| MAX31856 #3 | TIT — Turbine Input Temperature | |
+| MAX31856 #4 | TOT — Turbine Output Temperature | |
 
 ---
 

@@ -4,10 +4,11 @@
 // Tunable lookup table: gauge boost (PSI above ambient) -> vane position (0-100%)
 // Edit these values and recompile to tune on the truck.
 const PressureMapEntry BoostController::pressureMap[] = {
-    {0.0f, 30},
-    {2.0f, 40},
-    {7.3f, 50},
-    {53.5f, 68}
+    {0.0f, 18},
+    // {1.0f, 16},
+    // {3.0f, 25},
+    // {30.0f, 30},
+    {53.5f, 30} // don't exceed 68% or the the actuator will try to go past the physical limit and cause damage
 };
 const uint8_t BoostController::pressureMapSize = sizeof(pressureMap) / sizeof(pressureMap[0]);
 

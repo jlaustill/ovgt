@@ -16,6 +16,9 @@ struct AppData {
     uint16_t turbineInputPressureHpa;
     float turbineInputVoltage;
     float tipZeroVoltage;
+    int16_t turbineInletTempC;
+    int16_t compressorOutputTempC;
+    int16_t turbineOutletTempC;
     uint16_t ambientPressureGuessHpa;
     bool pgFault;
 };

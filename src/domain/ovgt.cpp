@@ -3,6 +3,11 @@
 #include "display/actuator.h"
 #include "AppData.h"
 #include "sensors/adcSensors.h"
+#include "sensors/titSensor.h"
+#include "sensors/cotSensor.h"
+#include "sensors/citSensor.h"
+#include "sensors/totSensor.h"
+#include "sensors/j1939.h"
 #include "control/boostController.h"
 
 IntervalTimer debugTimer;
@@ -38,13 +43,17 @@ void ovgt::handleDebug() {
         snprintf(brBuf, sizeof(brBuf), "\xe2\x88\x9e");
     }
 
-    char buf[96];
-    snprintf(buf, sizeof(buf), "Boost:%.1fpsi BPR:%s Dem:%u%% Pos:%u%% TIPv:%.3f",
+    char buf[128];
+    snprintf(buf, sizeof(buf), "Boost:%.1fpsi BPR:%s Dem:%u%% Pos:%u%% TIPv:%.3f COT:%dC CIT:%dC TIT:%dC TOT:%dC",
         (double)(boostGauge * 0.0145038f),
         brBuf,
         manualMode ? manualPwm : appData.actuatorDemandedPosition,
         appData.actuatorReportedPosition,
-        (double)appData.turbineInputVoltage);
+        (double)appData.turbineInputVoltage,
+        appData.compressorOutputTempC,
+        appData.compressorInputTempC,
+        appData.turbineInletTempC,
+        appData.turbineOutletTempC);
     Serial.println(buf);
 
     count = 0;
@@ -65,9 +74,14 @@ void ovgt::setup() {
     appData.ambientPressureGuessHpa = 10000;
     pinMode(PG_PIN, INPUT);
 
-    AdcSensors::Initialize();
-    BoostController::Initialize();
+    // AdcSensors::Initialize();
+    TitSensor::Initialize();
+    // CotSensor::Initialize();
+    // CitSensor::Initialize();
+    // TotSensor::Initialize();
+    // BoostController::Initialize();
     Actuator::Initialize();
+    J1939::Initialize();
 
     debugTimer.begin(handleDebugTimer, 1 * 1000 * 1000); // 1s
 
@@ -110,11 +124,11 @@ void ovgt::handleSerial() {
 void ovgt::loop() {
     handleSerial();
 
-    // ADC runs at ~860 SPS (1.2ms per conversion)
-    if (adcElapsed >= 1200) {
-        adcElapsed = 0;
-        AdcSensors::update();
-    }
+    // AdcSensors::update();
+    TitSensor::update();
+    // CotSensor::update();
+    // CitSensor::update();
+    // TotSensor::update();
 
     if (loopElapsed < 10) return;
     loopElapsed = 0;
@@ -133,12 +147,9 @@ void ovgt::loop() {
         appData.ambientPressureGuessHpa = appData.boostPressureHpa;
     }
 
-    t0 = ARM_DWT_CYCCNT;
-    if (!manualMode) {
-        BoostController::update();
-    }
-    t1 = ARM_DWT_CYCCNT;
-    cyclesBoost += t1 - t0;
+    // BoostController::update();
+
+    J1939::Loop();
 
     t0 = ARM_DWT_CYCCNT;
     Actuator::Loop();
