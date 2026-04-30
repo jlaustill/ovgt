@@ -81,13 +81,13 @@ void ovgt::setup() {
         digitalWrite(pin, HIGH);
     }
 
-    // AdcSensors::Initialize();
+    AdcSensors::Initialize();
     TitSensor::Initialize();
     // CotSensor::Initialize();
     // CitSensor::Initialize();
     // TotSensor::Initialize();
     Fram::Initialize();
-    // BoostController::Initialize();
+    BoostController::Initialize();
     Actuator::Initialize();
     J1939::Initialize();
 
@@ -132,7 +132,7 @@ void ovgt::handleSerial() {
 void ovgt::loop() {
     handleSerial();
 
-    // AdcSensors::update();
+    AdcSensors::update();
     TitSensor::update();
     // CotSensor::update();
     // CitSensor::update();
@@ -155,7 +155,7 @@ void ovgt::loop() {
         appData.ambientPressureGuessHpa = appData.boostPressureHpa;
     }
 
-    // BoostController::update();
+    BoostController::update();
 
     J1939::Loop();
 

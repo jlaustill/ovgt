@@ -46,25 +46,18 @@ bool AdcSensors::emaInitialized[NUM_CHANNELS] = {false};
 void AdcSensors::Initialize() {
     ads.setGain(GAIN_TWOTHIRDS); // +/-6.144V range for 5V sensors
     ads.setDataRate(RATE_ADS1115_860SPS);
-    ads.begin();
+
+    if (!ads.begin()) {
+        Serial.println("ADS1115 #1 not found, check wiring!");
+        return;
+    }
 
     pinMode(READY_PIN, INPUT);
     attachInterrupt(digitalPinToInterrupt(READY_PIN), ConversionReadyISR, FALLING);
 
     currentChannel = 0;
     conversionStarted = false;
-
-    // Seed TIP zero voltage from a blocking read with engine off
-    int16_t raw = ads.readADC_SingleEnded(3);
-    float tipV = ads.computeVolts(raw);
-    if (tipV >= TIP_ZERO_SAFETY_MIN && tipV < 1.0f) {
-        appData.tipZeroVoltage = tipV;
-    } else {
-        appData.tipZeroVoltage = 0.5f;
-    }
-    Serial.print("TIP zero calibrated: ");
-    Serial.print(appData.tipZeroVoltage, 4);
-    Serial.println("V");
+    appData.tipZeroVoltage = 0.5f;
 
     Serial.println("AdcSensors initialized (4-channel round-robin)");
 }
