@@ -6,10 +6,10 @@
 // CAN2 = Teensy 4.1 pins 0 (RX) / 1 (TX). J1939 @ 250 kbps, 29-bit extended IDs.
 static FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can1939;
 
-static const uint8_t  SA           = 0x01;
-static const uint32_t PGN_EGT      = 0xFEF6; // SPN 173 — Exhaust Gas Temperature
-static const uint32_t PGN_OIL_TEMP = 0xFEEE; // SPN 175 — Engine Oil Temperature
-static const uint32_t PGN_FUEL_PRS = 0xFEEF; // SPN 94  — Fuel Delivery Pressure
+static const uint8_t  SA              = 0x01;
+static const uint32_t PGN_EGT         = 0xFEF6; // SPN 173 — Exhaust Gas Temperature
+static const uint32_t PGN_OIL_TEMP    = 0xFEEE; // SPN 175 (bytes 2-3) + SPN 176 (bytes 4-5) — Engine Oil Temperature
+static const uint32_t PGN_FLUID_PRESS = 0xFEEF; // SPN 94 (byte 0) fuel, SPN 100 (byte 3) oil pressure
 
 static uint32_t lastTx = 0;
 
@@ -49,17 +49,24 @@ static void transmit() {
     buf[5] = egtRaw >> 8;
     sendPgn(PGN_EGT, buf);
 
-    // Oil Temp — SPN 175, PGN 65262, bytes 2-3, encoding: (temp_c + 273) * 32
+    // Oil Temp — PGN 65262, encoding: (temp_c + 273) * 32
+    // SPN 175 (Engine Oil Temp 1): bytes 2-3
+    // SPN 176 (Turbocharger Oil Temp): bytes 4-5
     memset(buf, 0xFF, 8);
     uint16_t oilTmpRaw = (uint16_t)((appData.oilTempC + 273) * 32);
     buf[2] = oilTmpRaw & 0xFF;
     buf[3] = oilTmpRaw >> 8;
+    buf[4] = oilTmpRaw & 0xFF;
+    buf[5] = oilTmpRaw >> 8;
     sendPgn(PGN_OIL_TEMP, buf);
 
-    // Fuel Pressure — SPN 94, PGN 65263, byte 0, encoding: kPa / 4
+    // Fluid pressures — PGN 65263 (0xFEEF), encoding: kPa / 4
+    // SPN 94 (byte 0): fuel delivery pressure
+    // SPN 100 (byte 3): engine oil pressure
     memset(buf, 0xFF, 8);
     buf[0] = (uint8_t)((appData.liftPumpPressureHpa / 10) / 4);
-    sendPgn(PGN_FUEL_PRS, buf);
+    buf[3] = (uint8_t)((appData.oilPressureHpa / 10) / 4);
+    sendPgn(PGN_FLUID_PRESS, buf);
 }
 
 void J1939::Loop() {

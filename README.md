@@ -99,10 +99,10 @@ This project uses a Teensy 4.1 for real-time embedded control of a Variable Geom
 
 | Channel | Sensor | Type | Notes |
 |---------|--------|------|-------|
-| A0 | Lift Pump Pressure (temporary, until OSSM) | 0.5–4.5V pressure transducer | |
-| A1 | TOP — Turbine Output Pressure | 0.5–4.5V pressure transducer | |
-| A2 | Oil Temp | - | |
-| A3 | Oil Pressure | 0.5–4.5V pressure transducer | |
+| A0 | TOP — Turbine Out Pressure | 0.5–4.5V pressure transducer | 30 PSI default — verify sensor rating |
+| A1 | Oil Pressure | 0.5–4.5V pressure transducer | 100 PSI |
+| A2 | Oil Temp | GM NTC thermistor, 2.2kΩ pulldown | Same family as CIT |
+| A3 | Fuel Lift Pump Pressure (temporary) | 0.5–4.5V pressure transducer | 15 PSI |
 
 ### MAX31856 Thermocouple Channels
 
