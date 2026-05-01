@@ -25,6 +25,8 @@ class AdcSensors {
         static float ema2[NUM_CHANNELS];
         static bool emaInitialized2[NUM_CHANNELS];
 
+        static void updateAds1();
+        static void updateAds2();
         static void startConversion(uint8_t channel);
         static void processResult(uint8_t channel, float voltage);
         static void startConversion2(uint8_t channel);

@@ -103,8 +103,7 @@ void AdcSensors::startConversion2(uint8_t channel) {
     conversionStartTime2 = millis();
 }
 
-void AdcSensors::update() {
-    // ADS1 (0x48) — independent state machine
+void AdcSensors::updateAds1() {
     if (!conversionStarted) {
         startConversion(currentChannel);
     } else if (millis() - conversionStartTime > CONVERSION_TIMEOUT_MS) {
@@ -122,8 +121,9 @@ void AdcSensors::update() {
         conversionStarted = false;
         currentChannel = (currentChannel + 1) % NUM_CHANNELS;
     }
+}
 
-    // ADS2 (0x49) — independent state machine, always runs every call
+void AdcSensors::updateAds2() {
     if (!conversionStarted2) {
         startConversion2(currentChannel2);
     } else if (millis() - conversionStartTime2 > CONVERSION_TIMEOUT_MS) {
@@ -141,6 +141,11 @@ void AdcSensors::update() {
         conversionStarted2 = false;
         currentChannel2 = (currentChannel2 + 1) % NUM_CHANNELS;
     }
+}
+
+void AdcSensors::update() {
+    updateAds1();
+    updateAds2();
 }
 
 void AdcSensors::processResult(uint8_t channel, float voltage) {
