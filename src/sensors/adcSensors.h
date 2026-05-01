@@ -32,6 +32,7 @@ class AdcSensors {
         static void startConversion2(uint8_t channel);
         static void processResult2(uint8_t channel, float voltage);
         static float steinhartHart(float resistance);
+        static float steinhartHartAem(float resistance);
 };
 
 #endif

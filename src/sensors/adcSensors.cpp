@@ -24,6 +24,12 @@ static const float SH_A = 0.001468f;
 static const float SH_B = 0.000239f;
 static const float SH_C = 0.0000001013f;
 
+// AEM 30-2013 DTM fluid temp sensor Steinhart-Hart coefficients
+// Derived from AEM calibration table (40/80/130°C points)
+static const float AEM_SH_A = 0.001545f;
+static const float AEM_SH_B = 0.0002138f;
+static const float AEM_SH_C = 0.0000002313f;
+
 // Pulldown resistor value for NTC divider (ohms)
 static const float PULLDOWN_R = 2200.0f;
 // Supply voltage for NTC divider
@@ -207,20 +213,20 @@ void AdcSensors::processResult2(uint8_t channel, float voltage) {
             break;
         }
         case 1: {
-            // Oil pressure: 100 PSI (6895 hPa), 0.5–4.5V ratiometric
-            float hPa = (voltage - 0.5f) * 1723.69f;
+            // Oil pressure: 150 PSI (10342 hPa), 0.5–4.5V ratiometric
+            float hPa = (voltage - 0.5f) * 2585.535f;
             if (hPa < 0.0f) hPa = 0.0f;
-            if (hPa > 6895.0f) hPa = 6895.0f;
+            if (hPa > 10342.0f) hPa = 10342.0f;
             appData.oilPressureHpa = (uint16_t)hPa;
             break;
         }
         case 2: {
-            // Oil temp: GM NTC + 2.2kΩ pulldown to GND, 5V supply
+            // Oil temp: AEM 30-2013 DTM sensor, 2.2kΩ pullup to 5V
             if (voltage >= NTC_VCC - 0.01f || voltage <= 0.01f) {
                 break;
             }
             float resistance = PULLDOWN_R * voltage / (NTC_VCC - voltage);
-            appData.oilTempC = (int16_t)steinhartHart(resistance);
+            appData.oilTempC = (int16_t)steinhartHartAem(resistance);
             break;
         }
         case 3: {
@@ -237,5 +243,11 @@ void AdcSensors::processResult2(uint8_t channel, float voltage) {
 float AdcSensors::steinhartHart(float resistance) {
     float lnR = logf(resistance);
     float invT = SH_A + SH_B * lnR + SH_C * lnR * lnR * lnR;
+    return (1.0f / invT) - 273.15f;
+}
+
+float AdcSensors::steinhartHartAem(float resistance) {
+    float lnR = logf(resistance);
+    float invT = AEM_SH_A + AEM_SH_B * lnR + AEM_SH_C * lnR * lnR * lnR;
     return (1.0f / invT) - 273.15f;
 }
