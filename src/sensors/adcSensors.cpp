@@ -104,65 +104,43 @@ void AdcSensors::startConversion2(uint8_t channel) {
 }
 
 void AdcSensors::update() {
+    // ADS1 (0x48) — independent state machine
     if (!conversionStarted) {
         startConversion(currentChannel);
-        return;
-    }
-
-    // Check for timeout — retry same channel
-    if (millis() - conversionStartTime > CONVERSION_TIMEOUT_MS) {
+    } else if (millis() - conversionStartTime > CONVERSION_TIMEOUT_MS) {
         conversionStarted = false;
-        return;
+    } else if (conversionReady) {
+        int16_t raw = ads.getLastConversionResults();
+        float voltage = ads.computeVolts(raw);
+        if (!emaInitialized[currentChannel]) {
+            ema[currentChannel] = voltage;
+            emaInitialized[currentChannel] = true;
+        } else {
+            ema[currentChannel] += EMA_ALPHA * (voltage - ema[currentChannel]);
+        }
+        processResult(currentChannel, ema[currentChannel]);
+        conversionStarted = false;
+        currentChannel = (currentChannel + 1) % NUM_CHANNELS;
     }
 
-    // Wait for ISR to signal conversion complete
-    if (!conversionReady) {
-        return;
-    }
-
-    // Read result, apply EMA, process, advance
-    int16_t raw = ads.getLastConversionResults();
-    float voltage = ads.computeVolts(raw);
-
-    if (!emaInitialized[currentChannel]) {
-        ema[currentChannel] = voltage;
-        emaInitialized[currentChannel] = true;
-    } else {
-        ema[currentChannel] += EMA_ALPHA * (voltage - ema[currentChannel]);
-    }
-
-    processResult(currentChannel, ema[currentChannel]);
-    conversionStarted = false;
-    currentChannel = (currentChannel + 1) % NUM_CHANNELS;
-
-    // ADS2 (0x49) round-robin
+    // ADS2 (0x49) — independent state machine, always runs every call
     if (!conversionStarted2) {
         startConversion2(currentChannel2);
-        return;
-    }
-
-    if (millis() - conversionStartTime2 > CONVERSION_TIMEOUT_MS) {
+    } else if (millis() - conversionStartTime2 > CONVERSION_TIMEOUT_MS) {
         conversionStarted2 = false;
-        return;
+    } else if (conversionReady2) {
+        int16_t raw2 = ads2.getLastConversionResults();
+        float voltage2 = ads2.computeVolts(raw2);
+        if (!emaInitialized2[currentChannel2]) {
+            ema2[currentChannel2] = voltage2;
+            emaInitialized2[currentChannel2] = true;
+        } else {
+            ema2[currentChannel2] += EMA_ALPHA * (voltage2 - ema2[currentChannel2]);
+        }
+        processResult2(currentChannel2, ema2[currentChannel2]);
+        conversionStarted2 = false;
+        currentChannel2 = (currentChannel2 + 1) % NUM_CHANNELS;
     }
-
-    if (!conversionReady2) {
-        return;
-    }
-
-    int16_t raw2 = ads2.getLastConversionResults();
-    float voltage2 = ads2.computeVolts(raw2);
-
-    if (!emaInitialized2[currentChannel2]) {
-        ema2[currentChannel2] = voltage2;
-        emaInitialized2[currentChannel2] = true;
-    } else {
-        ema2[currentChannel2] += EMA_ALPHA * (voltage2 - ema2[currentChannel2]);
-    }
-
-    processResult2(currentChannel2, ema2[currentChannel2]);
-    conversionStarted2 = false;
-    currentChannel2 = (currentChannel2 + 1) % NUM_CHANNELS;
 }
 
 void AdcSensors::processResult(uint8_t channel, float voltage) {
