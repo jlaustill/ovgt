@@ -19,7 +19,7 @@ void BoostController::Initialize() {
 }
 
 void BoostController::update() {
-    int16_t gaugeBoostHpa = (int16_t)appData.boostPressureHpa - (int16_t)appData.ambientPressureGuessHpa;
+    int16_t gaugeBoostHpa = (int16_t)appData.boostPressureHpa - (int16_t)appData.compressorInputPressureHpa;
     if (gaugeBoostHpa < 0) gaugeBoostHpa = 0;
     float gaugeBoostPsi = gaugeBoostHpa * HPA_TO_PSI;
     uint8_t position = interpolate(gaugeBoostPsi);

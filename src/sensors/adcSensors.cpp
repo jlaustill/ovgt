@@ -19,10 +19,11 @@ static const uint16_t MUX_CONFIG[] = {
     ADS1X15_REG_CONFIG_MUX_SINGLE_3
 };
 
-// GM IAT Steinhart-Hart coefficients (25037225 family)
-static const float SH_A = 0.001468f;
-static const float SH_B = 0.000239f;
-static const float SH_C = 0.0000001013f;
+// GM 25037225 IAT sensor Steinhart-Hart coefficients
+// Derived from published GM table: -20°C/28680Ω, 20°C/3520Ω, 80°C/310Ω
+static const float SH_A = 0.0015728f;
+static const float SH_B = 0.0002139f;
+static const float SH_C = 0.0000001682f;
 
 // AEM 30-2013 DTM fluid temp sensor Steinhart-Hart coefficients
 // Derived from AEM calibration table (40/80/130°C points)
@@ -175,7 +176,7 @@ void AdcSensors::processResult(uint8_t channel, float voltage) {
             break;
         }
         case 2: {
-            // Compressor input temp: GM NTC + 2.2kΩ pulldown to GND, 5V supply
+            // Compressor input temp: GM NTC (25037225 family) — 2.2kΩ pullup from 5V, NTC to GND
             // R = 2200 * V / (5.0 - V)
             if (voltage >= NTC_VCC - 0.01f || voltage <= 0.01f) {
                 // Open or shorted sensor — don't update

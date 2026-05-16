@@ -35,7 +35,7 @@ void ovgt::handleDebug() {
     if (!debugFlag) return;
     debugFlag = false;
 
-    int16_t boostGauge = (int16_t)appData.boostPressureHpa - (int16_t)appData.ambientPressureGuessHpa;
+    int16_t boostGauge = (int16_t)appData.boostPressureHpa - (int16_t)appData.compressorInputPressureHpa;
 
     char brBuf[16];
     if (boostGauge != 0) {
@@ -44,17 +44,24 @@ void ovgt::handleDebug() {
         snprintf(brBuf, sizeof(brBuf), "\xe2\x88\x9e");
     }
 
+    char boBuf[8];
+    if (appData.compressorInputPressureHpa > 0) {
+        snprintf(boBuf, sizeof(boBuf), "%.2f", (float)appData.boostPressureHpa / appData.compressorInputPressureHpa);
+    } else {
+        snprintf(boBuf, sizeof(boBuf), "---");
+    }
+
     char buf[128];
-    snprintf(buf, sizeof(buf), "Boost:%.1fpsi BPR:%s Dem:%u%% Pos:%u%% TIPv:%.3f COT:%dC CIT:%dC TIT:%dC TOT:%dC",
+    snprintf(buf, sizeof(buf), "BR:%s Boost:%.1fpsi BPR:%s Dem:%u%% Pos:%u%% TIP:%.1fpsi CIT:%dC CIP:%.1fpsi TIT:%dC",
+        boBuf,
         (double)(boostGauge * 0.0145038f),
         brBuf,
         manualMode ? manualPwm : appData.actuatorDemandedPosition,
         appData.actuatorReportedPosition,
-        (double)appData.turbineInputVoltage,
-        appData.compressorOutputTempC,
+        (double)(appData.turbineInputPressureHpa * 0.0145038f),
         appData.compressorInputTempC,
-        appData.turbineInletTempC,
-        appData.turbineOutletTempC);
+        (double)(appData.compressorInputPressureHpa * 0.0145038f),
+        appData.turbineInletTempC);
     Serial.println(buf);
 
     count = 0;
@@ -72,7 +79,6 @@ void ovgt::setup() {
     ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;
 
     count = 0;
-    appData.ambientPressureGuessHpa = 10000;
     pinMode(PG_PIN, INPUT);
 
     // Drive all SPI CS pins high before initializing any SPI device
@@ -150,10 +156,6 @@ void ovgt::loop() {
     cyclesDebug += t1 - t0;
 
     appData.pgFault = digitalRead(PG_PIN);
-
-    if (appData.boostPressureHpa > 500 && appData.boostPressureHpa < appData.ambientPressureGuessHpa) {
-        appData.ambientPressureGuessHpa = appData.boostPressureHpa;
-    }
 
     BoostController::update();
 

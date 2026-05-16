@@ -23,7 +23,6 @@ struct AppData {
     uint16_t oilPressureHpa;
     uint16_t turbineOutPressureHpa;
     uint16_t liftPumpPressureHpa;
-    uint16_t ambientPressureGuessHpa;
     bool pgFault;
 };
 
