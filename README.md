@@ -115,6 +115,75 @@ This project uses a Teensy 4.1 for real-time embedded control of a Variable Geom
 
 ---
 
+## Deutsch DT Connector Pinout
+
+The controller is housed in a Deutsch PCB connector case with a 4×12-pin DT header, labeled **A**, **B**, **C**, and **D**.
+
+### Connector A — Power & Analog Sensors (0x49)
+
+| Pin | Signal | Notes |
+|-----|--------|-------|
+| 1 | GND | System ground |
+| 2 | 0x49 A1 — Oil Pressure (signal) | |
+| 3 | 0x49 A0 — TOP (signal) | Turbine Output Pressure |
+| 4 | Oil Pressure 5V | Sensor supply |
+| 5 | *(Lift Pump Pressure 5V or TOP 5V)* | Not recorded — verify on harness |
+| 6 | *(TOP 5V or Lift Pump Pressure 5V)* | Not recorded — verify on harness |
+| 7 | 0x49 A2 — Oil Temp (signal) | |
+| 8 | Oil Temp GND | Sensor ground |
+| 9 | *(TOP GND or Lift Pump Pressure GND)* | Not recorded — verify on harness |
+| 10 | *(Lift Pump Pressure GND or TOP GND)* | Not recorded — verify on harness |
+| 11 | Oil Pressure GND | Sensor ground |
+| 12 | 12V | Power input |
+
+### Connector B — CAN Buses & Thermocouples
+
+| Pin | Signal | Notes |
+|-----|--------|-------|
+| 1 | CAN2 Lo | |
+| 2 | CAN2 Hi | |
+| 3 | CAN2 Shield | |
+| 4 | CAN3 Shield | |
+| 5 | CAN3 Hi | |
+| 6 | CAN3 Lo | |
+| 7 | COT+ | Compressor Output Temp (thermocouple) |
+| 8 | COT− | Compressor Output Temp (thermocouple) |
+| 9 | CIT− | Compressor Input Temp (thermocouple) |
+| 10 | CIT+ | Compressor Input Temp (thermocouple) |
+| 11 | TOT− | Turbine Output Temp (thermocouple) |
+| 12 | TOT+ | Turbine Output Temp (thermocouple) |
+
+### Connector C — Analog Sensors (0x48) & Grounds
+
+| Pin | Signal | Notes |
+|-----|--------|-------|
+| 1 | CIT GND | Compressor Input Temp ground |
+| 2 | TIP GND | Turbine Input Pressure ground |
+| 3 | CIP GND | Compressor Input Pressure ground |
+| 4 | COP GND | Compressor Output Pressure ground |
+| 5 | 0x48 A0 — COP (signal) | Compressor Output Pressure |
+| 6 | 0x48 A1 — CIP (signal) | Compressor Input Pressure |
+| 7 | 0x49 A3 — Lift Pump Pressure (signal) | |
+| 8 | COP 5V | Sensor supply |
+| 9 | TIP 5V | Sensor supply |
+| 10 | CIP 5V | Sensor supply |
+| 11 | 0x48 A3 — TIP (signal) | Turbine Input Pressure |
+| 12 | 0x48 A2 — CIT (signal) | Compressor Input Temp |
+
+### Connector D — USB & TIT Thermocouple
+
+| Pin | Signal | Notes |
+|-----|--------|-------|
+| 1 | USB+ | |
+| 2 | USB− | |
+| 3 | USB White | |
+| 4 | USB Green | |
+| 5 | TIT− | Turbine Input Temp (thermocouple) |
+| 6 | TIT+ | Turbine Input Temp (thermocouple) |
+| 7–12 | — | Unused |
+
+---
+
 ## Building the Project
 
 This project uses [PlatformIO](https://platformio.org/) as the build system.
