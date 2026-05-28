@@ -47,7 +47,7 @@ static void transmit100ms() {
     // SPN 102 (byte 2): intake manifold pressure, 2 kPa/bit
     // SPN 173 (bytes 6-7): EGT, 0.03125 deg C/bit, offset -273
     memset(buf, 0xFF, 8);
-    buf[1] = (uint8_t)(appData.boostPressureHpa / 10 / 2);
+    buf[1] = (uint8_t)((appData.boostPressureHpa - appData.compressorInputPressureHpa) / 10 / 2);
     uint16_t egtRaw = (uint16_t)((appData.turbineInletTempC + 273) * 32);
     buf[5] = egtRaw & 0xFF;
     buf[6] = egtRaw >> 8;
