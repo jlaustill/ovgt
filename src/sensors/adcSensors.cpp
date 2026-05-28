@@ -163,7 +163,7 @@ void AdcSensors::processResult(uint8_t channel, float voltage) {
             float hPa = (voltage - 0.5f) * 2500.0f;
             if (hPa < 0.0f) hPa = 0.0f;
             if (hPa > 10000.0f) hPa = 10000.0f;
-            appData.boostPressureHpa = (uint16_t)hPa;
+            appData.compressorOutputPressureHpaa = (uint16_t)hPa;
             break;
         }
         case 1: {
@@ -172,7 +172,7 @@ void AdcSensors::processResult(uint8_t channel, float voltage) {
             float hPa = (voltage - 0.5f) * 258.575f;
             if (hPa < 0.0f) hPa = 0.0f;
             if (hPa > 1034.0f) hPa = 1034.0f;
-            appData.compressorInputPressureHpa = (uint16_t)hPa;
+            appData.compressorInputPressureHpaa = (uint16_t)hPa;
             break;
         }
         case 2: {

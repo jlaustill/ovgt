@@ -35,7 +35,7 @@ void ovgt::handleDebug() {
     if (!debugFlag) return;
     debugFlag = false;
 
-    int16_t boostGauge = (int16_t)appData.boostPressureHpa - (int16_t)appData.compressorInputPressureHpa;
+    int16_t boostGauge = (int16_t)appData.compressorOutputPressureHpaa - (int16_t)appData.compressorInputPressureHpaa;
 
     char brBuf[16];
     if (boostGauge != 0) {
@@ -45,8 +45,8 @@ void ovgt::handleDebug() {
     }
 
     char boBuf[8];
-    if (appData.compressorInputPressureHpa > 0) {
-        snprintf(boBuf, sizeof(boBuf), "%.2f", (float)appData.boostPressureHpa / appData.compressorInputPressureHpa);
+    if (appData.compressorInputPressureHpaa > 0) {
+        snprintf(boBuf, sizeof(boBuf), "%.2f", (float)appData.compressorOutputPressureHpaa / appData.compressorInputPressureHpaa);
     } else {
         snprintf(boBuf, sizeof(boBuf), "---");
     }
@@ -60,7 +60,7 @@ void ovgt::handleDebug() {
         appData.actuatorReportedPosition,
         (double)(appData.turbineInputPressureHpa * 0.0145038f),
         appData.compressorInputTempC,
-        (double)(appData.compressorInputPressureHpa * 0.0145038f),
+        (double)(appData.compressorInputPressureHpaa * 0.0145038f),
         appData.turbineInletTempC);
     Serial.println(buf);
 
