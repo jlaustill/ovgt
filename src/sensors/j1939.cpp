@@ -2,6 +2,7 @@
 #include <FlexCAN_T4.h>
 #include "j1939.h"
 #include "AppData.h"
+#include "j1939Decode.h"
 
 // CAN2 = Teensy 4.1 pins 0 (RX) / 1 (TX). J1939 @ 250 kbps, 29-bit extended IDs.
 static FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can1939;
@@ -10,15 +11,22 @@ static const uint8_t  SA              = 0x01;
 static const uint32_t PGN_AMB         = 65270; // AMB — SPN 102 (byte 2, boost), SPN 173 (bytes 6-7, EGT)
 static const uint32_t PGN_OIL_TEMP    = 65262; // SPN 175 (bytes 3-4) + SPN 176 (bytes 5-6) — Engine Oil Temperature
 static const uint32_t PGN_FLUID_PRESS = 65263; // SPN 94 (byte 1) fuel, SPN 100 (byte 4) oil pressure
+static const uint32_t PGN_EEC2 = 61443; // EEC2 — SPN 91 throttle, SPN 92 load
+static const uint32_t PGN_ETC1 = 61442; // ETC1 — SPN 573 torque converter lockup
 
 static uint32_t lastTx100ms = 0;
 static uint32_t lastTx500ms = 0;
 
 static void j1939Sniff(const CAN_message_t &msg) {
-    // TODO: decode incoming PGNs into appData fields
-    // J1939 29-bit ID: priority[28:26] | DP[25:24] | PF[23:16] | PS[15:8] | SA[7:0]
-    // PGN = (DP << 16) | (PF << 8) | (PF >= 240 ? PS : 0)
-    (void)msg;
+    uint32_t pgn = pgnFromCanId(msg.id);
+    if (pgn == PGN_EEC2) {
+        appData.acceleratorPedalPercent = decodeAcceleratorPedalPercent(msg.buf);
+        appData.engineLoadPercent = decodeEngineLoadPercent(msg.buf);
+        appData.lastEec2RxMs = millis();
+    } else if (pgn == PGN_ETC1) {
+        appData.torqueConverterLockupStatus = decodeTorqueConverterLockup(msg.buf);
+        appData.lastEtc1RxMs = millis();
+    }
 }
 
 void J1939::Initialize() {
