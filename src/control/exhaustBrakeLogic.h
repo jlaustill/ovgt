@@ -17,8 +17,8 @@ struct BrakeInputs {
 struct BrakeConfig {
     float    targetPsi;
     float    ceilingPsi;
-    uint8_t  minVanePercent;
-    uint8_t  maxVanePercent;
+    uint8_t  vaneClosedPercent;  // most-closed position = max backpressure (0 on this actuator)
+    uint8_t  vaneOpenPercent;    // fully-open position = relief / mechanical limit (68)
     uint32_t staleTimeoutMs;
     float    kp;
     float    ki;

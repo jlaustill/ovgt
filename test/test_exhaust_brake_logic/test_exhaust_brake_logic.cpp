@@ -8,8 +8,8 @@ static BrakeConfig makeConfig(void) {
     BrakeConfig cfg;
     cfg.targetPsi = 60.0f;
     cfg.ceilingPsi = 65.0f;
-    cfg.minVanePercent = 18;
-    cfg.maxVanePercent = 68;
+    cfg.vaneClosedPercent = 0;   // fully closed = max backpressure
+    cfg.vaneOpenPercent = 68;    // fully open = mechanical limit
     cfg.staleTimeoutMs = 250;
     cfg.kp = 0.5f;
     cfg.ki = 0.3f;
@@ -95,15 +95,33 @@ void test_lockup_error_state_inactive(void) {
     TEST_ASSERT_FALSE(out.active);
 }
 
-void test_engaged_drives_vanes(void) {
+void test_engaged_drives_vanes_closed(void) {
     BrakeInputs in = makeEngagedInputs();  // tip = 0, error = 60
     BrakeConfig cfg = makeConfig();
     BrakeState st = {0.0f};
     BrakeOutput out = exhaustBrakeStep(in, cfg, st, 0.01f);
     TEST_ASSERT_TRUE(out.active);
     TEST_ASSERT_FALSE(out.fault);
-    // vane = kp*error + integral = 0.5*60 + 0.3*60*0.01 = 30.18 -> 30
-    TEST_ASSERT_EQUAL_UINT8(30, out.vanePercent);
+    // closure = kp*error + integral = 0.5*60 + 0.3*60*0.01 = 30.18
+    // vane = open(68) - closure = 37.82 -> 38  (driven toward closed)
+    TEST_ASSERT_EQUAL_UINT8(38, out.vanePercent);
+    TEST_ASSERT_TRUE(out.vanePercent < cfg.vaneOpenPercent);  // closing, not opening
+}
+
+void test_bigger_deficit_closes_more(void) {
+    BrakeConfig cfg = makeConfig();
+    // Small deficit: tip near target -> vanes barely closed (near open).
+    BrakeInputs small = makeEngagedInputs();
+    small.tipGaugePsi = 50.0f;  // error = 10
+    BrakeState stSmall = {0.0f};
+    BrakeOutput outSmall = exhaustBrakeStep(small, cfg, stSmall, 0.01f);
+    // Large deficit: tip far below target -> vanes much more closed.
+    BrakeInputs big = makeEngagedInputs();
+    big.tipGaugePsi = 0.0f;     // error = 60
+    BrakeState stBig = {0.0f};
+    BrakeOutput outBig = exhaustBrakeStep(big, cfg, stBig, 0.01f);
+    // More pressure deficit => MORE closure => LOWER vane %.
+    TEST_ASSERT_TRUE(outBig.vanePercent < outSmall.vanePercent);
 }
 
 void test_ceiling_opens_vanes(void) {
@@ -114,10 +132,11 @@ void test_ceiling_opens_vanes(void) {
     BrakeOutput out = exhaustBrakeStep(in, cfg, st, 0.01f);
     TEST_ASSERT_TRUE(out.active);
     TEST_ASSERT_TRUE(out.fault);
-    TEST_ASSERT_EQUAL_UINT8(18, out.vanePercent);  // forced open to minVane
+    TEST_ASSERT_EQUAL_UINT8(68, out.vanePercent);     // relieved by opening fully
+    TEST_ASSERT_EQUAL_FLOAT(0.0f, st.integralTerm);   // integral reset on ceiling
 }
 
-void test_integral_antiwindup_clamps(void) {
+void test_integral_antiwindup_clamps_closed(void) {
     BrakeInputs in = makeEngagedInputs();  // persistent large error
     BrakeConfig cfg = makeConfig();
     BrakeState st = {0.0f};
@@ -126,8 +145,8 @@ void test_integral_antiwindup_clamps(void) {
         out = exhaustBrakeStep(in, cfg, st, 0.01f);
     }
     TEST_ASSERT_TRUE(out.active);
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 68.0f, st.integralTerm);  // clamped at maxVane
-    TEST_ASSERT_EQUAL_UINT8(68, out.vanePercent);              // output clamped too
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 68.0f, st.integralTerm);  // clamped at full travel
+    TEST_ASSERT_EQUAL_UINT8(0, out.vanePercent);              // fully closed (max backpressure)
 }
 
 int main(int, char **) {
@@ -139,8 +158,9 @@ int main(int, char **) {
     RUN_TEST(test_load_releases);
     RUN_TEST(test_not_locked_inactive);
     RUN_TEST(test_lockup_error_state_inactive);
-    RUN_TEST(test_engaged_drives_vanes);
+    RUN_TEST(test_engaged_drives_vanes_closed);
+    RUN_TEST(test_bigger_deficit_closes_more);
     RUN_TEST(test_ceiling_opens_vanes);
-    RUN_TEST(test_integral_antiwindup_clamps);
+    RUN_TEST(test_integral_antiwindup_clamps_closed);
     return UNITY_END();
 }
