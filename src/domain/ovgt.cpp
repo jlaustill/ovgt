@@ -10,6 +10,7 @@
 #include "storage/fram.h"
 #include "sensors/j1939.h"
 #include "control/boostController.h"
+#include "control/exhaustBrakeController.h"
 
 IntervalTimer debugTimer;
 elapsedMillis loopElapsed;
@@ -51,8 +52,8 @@ void ovgt::handleDebug() {
         snprintf(boBuf, sizeof(boBuf), "---");
     }
 
-    char buf[128];
-    snprintf(buf, sizeof(buf), "BR:%s Boost:%.1fpsi BPR:%s Dem:%u%% Pos:%u%% TIP:%.1fpsi CIT:%dC CIP:%.1fpsi TIT:%dC",
+    char buf[160];
+    snprintf(buf, sizeof(buf), "BR:%s Boost:%.1fpsi BPR:%s Dem:%u%% Pos:%u%% TIP:%.1fpsi CIT:%dC CIP:%.1fpsi TIT:%dC Brk:%s",
         boBuf,
         (double)(boostGauge * 0.0145038f),
         brBuf,
@@ -61,7 +62,8 @@ void ovgt::handleDebug() {
         (double)(appData.turbineInputPressureHpa * 0.0145038f),
         appData.compressorInputTempC,
         (double)(appData.compressorInputPressureHpaa * 0.0145038f),
-        appData.turbineInletTempC);
+        appData.turbineInletTempC,
+        appData.exhaustBrakeActive ? "ON" : "off");
     Serial.println(buf);
 
     count = 0;
@@ -94,6 +96,7 @@ void ovgt::setup() {
     // TotSensor::Initialize();
     Fram::Initialize();
     BoostController::Initialize();
+    ExhaustBrakeController::Initialize();
     Actuator::Initialize();
     J1939::Initialize();
 
@@ -157,9 +160,12 @@ void ovgt::loop() {
 
     appData.pgFault = digitalRead(PG_PIN);
 
-    BoostController::update();
+    J1939::Loop();   // process RX first so brake/boost act on fresh CAN data
 
-    J1939::Loop();
+    bool braking = ExhaustBrakeController::update(manualMode);
+    if (!braking) {
+        BoostController::update();
+    }
 
     t0 = ARM_DWT_CYCCNT;
     Actuator::Loop();
