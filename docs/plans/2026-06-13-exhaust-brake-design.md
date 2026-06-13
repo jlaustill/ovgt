@@ -103,24 +103,30 @@ the PI loop runs at `dt = 0.01s` (computed from `millis()` for correctness).
 4. **Engage condition** — `torqueConverterLockupStatus == 0b01` AND throttle == 0
    AND load == 0. No engage debounce (instant release makes a spurious engage
    cheap). If not met, return `false`.
+   **Vane convention (verified on-truck):** `0%` = fully CLOSED = max
+   backpressure; `68%` = fully OPEN = no restriction. Building backpressure
+   means driving the position DOWN toward closed.
+
 5. **Backpressure ceiling cutoff (guard 3)** — if measured TIP >
-   `BACKPRESSURE_CEILING_PSI`, force `actuatorDemandedPosition = MIN_VANE_PERCENT`
-   (vanes open), set fault flag, hold integral, return `true`. Overrides PI.
-6. **PI loop** — otherwise:
+   `BACKPRESSURE_CEILING_PSI`, relieve by OPENING the vanes:
+   `actuatorDemandedPosition = VANE_OPEN_PERCENT`, set fault flag, reset
+   integral, return `true`. Overrides PI.
+6. **PI loop** — otherwise (positive error = below target = need MORE
+   backpressure = MORE closure = LOWER vane position):
 
    ```
    tipGaugePsi    = turbineInputPressureHpa * 0.0145038
    error          = TARGET_BACKPRESSURE_PSI - tipGaugePsi
-   integralTerm   = clamp(integralTerm + Ki * error * dt,   // anti-windup: clamp the
-                          0, MAX_VANE_PERCENT)               // integral CONTRIBUTION to
-                                                             // the vane output range
-   vane           = Kp * error + integralTerm
-   actuatorDemandedPosition = clamp(vane, MIN_VANE_PERCENT, MAX_VANE_PERCENT)
+   travel         = VANE_OPEN_PERCENT - VANE_CLOSED_PERCENT
+   integralTerm   = clamp(integralTerm + Ki * error * dt, 0, travel)  // anti-windup
+   closure        = Kp * error + integralTerm
+   vane           = VANE_OPEN_PERCENT - closure
+   actuatorDemandedPosition = clamp(vane, VANE_CLOSED_PERCENT, VANE_OPEN_PERCENT)
    ```
 
-   Anti-windup clamps the accumulated integral *contribution* (in vane-% units)
-   to `[0, MAX_VANE_PERCENT]`, so it cannot wind past what the actuator can
-   deliver while vanes are saturated at the limit.
+   Anti-windup clamps the integral *contribution* (in vane-% units) to
+   `[0, travel]`, so it cannot wind past full travel while the vanes are
+   saturated closed.
 
    No derivative term: TIP is noisy and D would jitter the vanes.
 
@@ -130,12 +136,18 @@ the PI loop runs at `dt = 0.01s` (computed from `millis()` for correctness).
 |------|---------|-----------|
 | `TARGET_BACKPRESSURE_PSI` | 60 | PacBrake PRXB setpoint — **requires 60 psi valve springs** |
 | `BACKPRESSURE_CEILING_PSI` | 65 | Valve-float limit; hardware protection cutoff |
-| `MAX_VANE_PERCENT` | 68 | Existing hard limit (actuator physical stop) |
-| `MIN_VANE_PERCENT` | 18 | Boost baseline / vanes-open position |
+| `VANE_OPEN_PERCENT` | 68 | Fully open = mechanical limit / relief position |
+| `VANE_CLOSED_PERCENT` | 0 | Fully closed = max backpressure (but see note below) |
 | `CAN_STALE_TIMEOUT_MS` | 250 | 5x EEC2 period, 25x ETC1 period |
 | `Kp` | 0.5 (%vane/psi) | Starting estimate — tune on truck |
 | `Ki` | 0.3 (%vane/psi/s) | Starting estimate — tune on truck |
-| integral contribution clamp | `[0, MAX_VANE_PERCENT]` | Anti-windup, in vane-% units |
+| integral contribution clamp | `[0, travel]` | Anti-windup, in vane-% units |
+
+> **On-truck finding (2026-06-13):** with `VANE_CLOSED_PERCENT = 0` the actuator
+> only physically reaches ~9–11% before stopping short, and backpressure stays
+> ~1–2 psi even motoring down an 8% grade. Suspected mechanical/actuator travel
+> issue (actuator not completing closure, or linkage). Revisit
+> `VANE_CLOSED_PERCENT` and gains after the hardware is sorted.
 
 A prominent code comment documents the valve-spring dependency next to
 `TARGET_BACKPRESSURE_PSI` / `BACKPRESSURE_CEILING_PSI`.
