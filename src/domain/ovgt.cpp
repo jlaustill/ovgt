@@ -162,8 +162,11 @@ void ovgt::loop() {
 
     J1939::Loop();   // process RX first so brake/boost act on fresh CAN data
 
+    // In manual mode neither controller may touch actuatorDemandedPosition,
+    // otherwise the boost map clobbers the manually commanded vane position
+    // every cycle. The serial handler owns the demand while manual is active.
     bool braking = ExhaustBrakeController::update(manualMode);
-    if (!braking) {
+    if (!manualMode && !braking) {
         BoostController::update();
     }
 
