@@ -8,11 +8,14 @@
 #include <Arduino.h>
 #include "FlexCAN_T4.h"
 #include "AppData.h"
+#include "can_tx_queue.hpp"
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /* Scope: Actuator */
 static FlexCAN_T4<CAN3,RX_SIZE_256,TX_SIZE_16> Actuator_canBus = {};
+static IntervalTimer Actuator_txTimer = {};
 
 static void Actuator_receiveCallbackISR(const CAN_message_t& msg) {
     if (msg.id != 0x4EB) {
@@ -34,6 +37,18 @@ static void Actuator_receiveCallbackISR(const CAN_message_t& msg) {
     appData.actuatorReportedPosition = ((reported) & 0xFFU);
 }
 
+static void Actuator_txTimerISR(void) {
+    uint8_t demanded = appData.actuatorDemandedPosition;
+    bool ignored = CanTxQueue_enqueue(demanded);
+}
+
+static uint8_t Actuator_positionToCommand(uint8_t position) {
+    uint32_t pos = position;
+    uint32_t inverted = 100U - pos;
+    uint32_t command = inverted * 250U / 100U;
+    return ((command) & 0xFFU);
+}
+
 void Actuator_Initialize(void) {
     Actuator_canBus.begin();
     Actuator_canBus.setBaudRate(500000);
@@ -42,8 +57,23 @@ void Actuator_Initialize(void) {
     Actuator_canBus.enableFIFOInterrupt();
     Actuator_canBus.onReceive(Actuator_receiveCallbackISR);
     Actuator_canBus.mailboxStatus();
+    Actuator_txTimer.begin(Actuator_txTimerISR, 20000);
     Serial.println("Actuator (C-Next) initialized");
 }
 
 void Actuator_Loop(void) {
+    uint8_t position = 0U;
+    bool got = CanTxQueue_dequeue(position);
+    while (got == true) {
+        CAN_message_t msg = {};
+        msg.id = 0x4EA;
+        msg.flags.extended = 0;
+        msg.len = 8U;
+        for (uint8_t i = 0; i < 8; i += 1) {
+            msg.buf[i] = 0U;
+        }
+        msg.buf[0] = Actuator_positionToCommand(position);
+        Actuator_canBus.write(msg);
+        got = CanTxQueue_dequeue(position);
+    }
 }

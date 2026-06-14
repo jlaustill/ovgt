@@ -1,9 +1,11 @@
 #include <Arduino.h>
 #include "FlexCAN_T4.h"
 #include "AppData.h"
+#include "can_tx_queue.cnx"
 
 scope Actuator {
     FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_16> canBus;
+    IntervalTimer txTimer;
 
     const u32 CMD_ID <- 0x4EA;        // TX: position command
     const u32 FEEDBACK_ID <- 0x4EB;   // RX: actuator feedback
@@ -34,6 +36,20 @@ scope Actuator {
         global.appData.actuatorReportedPosition <- reported[0, 8];
     }
 
+    // Timer ISR: enqueue the latest demand only — no CAN write in ISR context.
+    private void txTimerISR() {
+        u8 demanded <- global.appData.actuatorDemandedPosition;
+        bool ignored <- CanTxQueue.enqueue(demanded);
+    }
+
+    // position (0..100) -> CAN command byte (0..250), closed/open inverted.
+    private u8 positionToCommand(u8 position) {
+        u32 pos <- position;
+        u32 inverted <- 100 - pos;
+        u32 command <- inverted * 250 / 100;
+        return command[0, 8];
+    }
+
     void Initialize() {
         canBus.begin();
         canBus.setBaudRate(500 * 1000);
@@ -42,9 +58,25 @@ scope Actuator {
         canBus.enableFIFOInterrupt();
         canBus.onReceive(receiveCallbackISR);
         canBus.mailboxStatus();
+        txTimer.begin(txTimerISR, 20000);   // 20 ms, microseconds
         Serial.println("Actuator (C-Next) initialized");
     }
 
+    // Consumer: drain the queue and write CAN in main context (outside ISR).
     void Loop() {
+        u8 position <- 0;
+        bool got <- CanTxQueue.dequeue(position);
+        while (got = true) {
+            CAN_message_t msg;
+            msg.id <- CMD_ID;
+            msg.flags.extended <- 0;
+            msg.len <- 8;
+            for (u8 i <- 0; i < 8; i +<- 1) {
+                msg.buf[i] <- 0;
+            }
+            msg.buf[0] <- positionToCommand(position);
+            canBus.write(msg);
+            got <- CanTxQueue.dequeue(position);
+        }
     }
 }
