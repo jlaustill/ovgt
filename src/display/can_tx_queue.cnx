@@ -1,0 +1,43 @@
+// Single-producer/single-consumer ring buffer of vane-position bytes.
+// Producer = timer ISR (enqueue); consumer = main loop (dequeue).
+// Arduino.h is required because critical {} expands to noInterrupts() on
+// Arduino/ARM targets (ADR-050 portable IRQ wrappers).
+#include <Arduino.h>
+
+scope CanTxQueue {
+    const u8 CAPACITY <- 8;             // power of two
+    const u8 MASK <- 7;                 // CAPACITY - 1
+    u8[8] positions;
+    atomic u8 head <- 0;               // producer index
+    atomic u8 tail <- 0;               // consumer index
+
+    void reset() {
+        this.head <- 0;
+        this.tail <- 0;
+    }
+
+    // Producer: single writer. Drop-newest when full.
+    bool enqueue(u8 position) {
+        u8 next <- (this.head + 1) & MASK;
+        bool full <- (next = this.tail);
+        if (full = true) {
+            return false;
+        }
+        this.positions[this.head] <- position;
+        this.head <- next;
+        return true;
+    }
+
+    // Consumer: single reader. critical guards read+advance vs the ISR producer.
+    bool dequeue(u8 outPosition) {
+        bool empty <- (this.head = this.tail);
+        if (empty = true) {
+            return false;
+        }
+        critical {
+            outPosition <- this.positions[this.tail];
+            this.tail <- (this.tail + 1) & MASK;
+        }
+        return true;
+    }
+}
