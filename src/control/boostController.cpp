@@ -8,7 +8,7 @@ const PressureMapEntry BoostController::pressureMap[] = {
     // {1.0f, 16},
     // {3.0f, 25},
     // {30.0f, 30},
-    {53.5f, 30} // don't exceed 68% or the the actuator will try to go past the physical limit and cause damage
+    {53.5f, 30} // keep within the actuator open limit (VANE_OPEN_PERCENT in VaneConfig.h); the actuator clamps to it so it can't hit the physical stop
 };
 const uint8_t BoostController::pressureMapSize = sizeof(pressureMap) / sizeof(pressureMap[0]);
 

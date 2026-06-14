@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "FlexCAN_T4.h"
 #include "AppData.h"
+#include "VaneConfig.h"
 
 scope Actuator {
     FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_16> canBus;
@@ -58,6 +59,11 @@ scope Actuator {
     // is a single latest-value setpoint, so no queue is needed.
     void Loop() {
         u8 demanded <- appData.actuatorDemandedPosition;
+        // Enforce the actuator's physical range here, at the source — no consumer
+        // can drive it past the open stop (closed = 0 is the natural u8 floor).
+        if (demanded > VANE_OPEN_PERCENT) {
+            demanded <- VANE_OPEN_PERCENT;
+        }
         CAN_message_t msg;
         msg.id <- CMD_ID;
         msg.flags.extended <- 0;

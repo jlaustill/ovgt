@@ -8,6 +8,7 @@
 #include <Arduino.h>
 #include "FlexCAN_T4.h"
 #include "AppData.h"
+#include "VaneConfig.h"
 
 #include <stdint.h>
 
@@ -54,6 +55,9 @@ void Actuator_Initialize(void) {
 
 void Actuator_Loop(void) {
     uint8_t demanded = appData.actuatorDemandedPosition;
+    if (demanded > VANE_OPEN_PERCENT) {
+        demanded = VANE_OPEN_PERCENT;
+    }
     CAN_message_t msg = {};
     msg.id = 0x4EA;
     msg.flags.extended = 0;
