@@ -1,5 +1,4 @@
 {
-    "cppRequired": true,
     "debugMode": true,
     "target": "teensy41",
     "include": [
