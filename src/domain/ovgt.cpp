@@ -77,6 +77,16 @@ void ovgt::handleDebug() {
 void ovgt::setup() {
     Serial.begin(115200);
 
+    // Diagnostic: after a fault-induced reset the Teensy core retains a crash
+    // report in no-init RAM. Printing it on boot tells us the fault type and
+    // the program counter/address that crashed. If resets keep happening but
+    // this stays blank, the cause is power/brownout, not a code fault.
+    if (CrashReport) {
+        Serial.println("=== CRASH REPORT ===");
+        Serial.print(CrashReport);
+        Serial.println("=== END CRASH REPORT ===");
+    }
+
     ARM_DEMCR |= ARM_DEMCR_TRCENA;
     ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;
 
