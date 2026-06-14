@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include "ovgt.h"
-#include "display/actuator.h"
+#include <actuator.hpp>
 #include "AppData.h"
 #include "sensors/adcSensors.h"
 #include "sensors/titSensor.h"
@@ -107,7 +107,7 @@ void ovgt::setup() {
     Fram::Initialize();
     BoostController::Initialize();
     ExhaustBrakeController::Initialize();
-    Actuator::Initialize();
+    Actuator_Initialize();
     J1939::Initialize();
 
     debugTimer.begin(handleDebugTimer, 1 * 1000 * 1000); // 1s
@@ -181,7 +181,7 @@ void ovgt::loop() {
     }
 
     t0 = ARM_DWT_CYCCNT;
-    Actuator::Loop();
+    Actuator_Loop();
     t1 = ARM_DWT_CYCCNT;
     cyclesActuator += t1 - t0;
 }

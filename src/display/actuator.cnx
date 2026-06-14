@@ -1,0 +1,10 @@
+#include <Arduino.h>
+
+scope Actuator {
+    void Initialize() {
+        global.Serial.println("Actuator (C-Next) initialized");
+    }
+
+    void Loop() {
+    }
+}
