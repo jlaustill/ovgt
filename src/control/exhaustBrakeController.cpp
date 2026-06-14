@@ -19,7 +19,10 @@ static BrakeConfig brakeConfig = {
     VANE_CLOSED_PERCENT, // vaneClosedPercent (max backpressure)
     VANE_OPEN_PERCENT,   // vaneOpenPercent (relief / mechanical open limit)
     250,                 // staleTimeoutMs
-    0.5f,                // kp (%vane per psi)
+    2.0f,                // kp (%vane/psi) — must span the full 0..VANE_OPEN travel;
+                         //   0.5 only reached ~1/3 closure so it jumped open then
+                         //   crawled closed via the integral. Tune up (3-4) for a
+                         //   harder bite, down if it overshoots/oscillates past target.
     0.3f                 // ki (%vane per psi/s)
 };
 
