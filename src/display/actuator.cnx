@@ -1,8 +1,48 @@
 #include <Arduino.h>
+#include "FlexCAN_T4.h"
+#include "AppData.h"
 
 scope Actuator {
+    FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_16> canBus;
+
+    const u32 CMD_ID <- 0x4EA;        // TX: position command
+    const u32 FEEDBACK_ID <- 0x4EB;   // RX: actuator feedback
+
+    // RX runs in ISR context: decode fields into appData ONLY (no write, no work).
+    private void receiveCallbackISR(const CAN_message_t msg) {
+        if (msg.id != FEEDBACK_ID) {
+            return;
+        }
+
+        u16 rawPosition;
+        rawPosition[8, 8] <- msg.buf[2];     // high byte -> bits 8..15
+        rawPosition[0, 8] <- msg.buf[3];     // low byte  -> bits 0..7
+
+        u16 motorLoad;
+        motorLoad[8, 8] <- msg.buf[6];
+        motorLoad[0, 8] <- msg.buf[7];
+
+        // actuatorReportedPosition = 100 - (rawPosition * 100 / 1000)
+        u32 raw <- rawPosition;
+        u32 mapped <- raw * 100 / 1000;
+        u32 reported <- 100 - mapped;
+
+        global.appData.actuatorRawPosition <- rawPosition;
+        global.appData.actuatorMotorLoad <- motorLoad;
+        global.appData.actuatorStatus <- msg.buf[0];
+        global.appData.actuatorTemp <- msg.buf[5];
+        global.appData.actuatorReportedPosition <- reported[0, 8];
+    }
+
     void Initialize() {
-        global.Serial.println("Actuator (C-Next) initialized");
+        canBus.begin();
+        canBus.setBaudRate(500 * 1000);
+        canBus.setMaxMB(16);
+        canBus.enableFIFO();
+        canBus.enableFIFOInterrupt();
+        canBus.onReceive(receiveCallbackISR);
+        canBus.mailboxStatus();
+        Serial.println("Actuator (C-Next) initialized");
     }
 
     void Loop() {

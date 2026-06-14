@@ -6,10 +6,42 @@
 #include "actuator.hpp"
 
 #include <Arduino.h>
+#include "FlexCAN_T4.h"
+#include "AppData.h"
+
+#include <stdint.h>
 
 /* Scope: Actuator */
+static FlexCAN_T4<CAN3,RX_SIZE_256,TX_SIZE_16> Actuator_canBus = {};
+
+static void Actuator_receiveCallbackISR(const CAN_message_t& msg) {
+    if (msg.id != 0x4EB) {
+        return;
+    }
+    uint16_t rawPosition = 0;
+    rawPosition = (uint16_t)((rawPosition & ~(0xFFU << 8)) | ((msg.buf[2U] & 0xFFU) << 8));
+    rawPosition = (uint16_t)((rawPosition & ~(0xFFU << 0)) | ((msg.buf[3U] & 0xFFU) << 0));
+    uint16_t motorLoad = 0;
+    motorLoad = (uint16_t)((motorLoad & ~(0xFFU << 8)) | ((msg.buf[6U] & 0xFFU) << 8));
+    motorLoad = (uint16_t)((motorLoad & ~(0xFFU << 0)) | ((msg.buf[7U] & 0xFFU) << 0));
+    uint32_t raw = rawPosition;
+    uint32_t mapped = raw * 100U / 1000U;
+    uint32_t reported = 100U - mapped;
+    appData.actuatorRawPosition = rawPosition;
+    appData.actuatorMotorLoad = motorLoad;
+    appData.actuatorStatus = msg.buf[0U];
+    appData.actuatorTemp = msg.buf[5U];
+    appData.actuatorReportedPosition = ((reported) & 0xFFU);
+}
 
 void Actuator_Initialize(void) {
+    Actuator_canBus.begin();
+    Actuator_canBus.setBaudRate(500000);
+    Actuator_canBus.setMaxMB(16);
+    Actuator_canBus.enableFIFO();
+    Actuator_canBus.enableFIFOInterrupt();
+    Actuator_canBus.onReceive(Actuator_receiveCallbackISR);
+    Actuator_canBus.mailboxStatus();
     Serial.println("Actuator (C-Next) initialized");
 }
 
