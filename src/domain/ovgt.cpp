@@ -53,7 +53,7 @@ void ovgt::handleDebug() {
     }
 
     char buf[160];
-    snprintf(buf, sizeof(buf), "BR:%s Boost:%.1fpsi BPR:%s Dem:%u%% Pos:%u%% TIP:%.1fpsi CIT:%dC CIP:%.1fpsi TIT:%dC Brk:%s MCU:%.0fC",
+    snprintf(buf, sizeof(buf), "BR:%s Boost:%.1fpsi BPR:%s Dem:%u%% Pos:%u%% TIP:%.1fpsi CIT:%dC CIP:%.1fpsi TIT:%dC Brk:%s MCU:%.0fC Clk:%luMHz",
         boBuf,
         (double)(boostGauge * 0.0145038f),
         brBuf,
@@ -64,7 +64,8 @@ void ovgt::handleDebug() {
         (double)(appData.compressorInputPressureHpaa * 0.0145038f),
         appData.turbineInletTempC,
         appData.exhaustBrakeActive ? "ON" : "off",
-        (double)tempmonGetTemp());
+        (double)tempmonGetTemp(),
+        (unsigned long)(F_CPU_ACTUAL / 1000000));
     Serial.println(buf);
 
     count = 0;
