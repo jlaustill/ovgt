@@ -1,16 +1,14 @@
 #include <Arduino.h>
 #include "FlexCAN_T4.h"
 #include "AppData.h"
-#include "can_tx_queue.cnx"
 
 scope Actuator {
     FlexCAN_T4<CAN3, RX_SIZE_256, TX_SIZE_16> canBus;
-    IntervalTimer txTimer;
 
     const u32 CMD_ID <- 0x4EA;        // TX: position command
     const u32 FEEDBACK_ID <- 0x4EB;   // RX: actuator feedback
 
-    // RX runs in ISR context: decode fields into appData ONLY (no write, no work).
+    // RX runs in ISR context: decode feedback fields into appData only.
     private void receiveCallbackISR(const CAN_message_t msg) {
         if (msg.id != FEEDBACK_ID) {
             return;
@@ -29,17 +27,11 @@ scope Actuator {
         u32 mapped <- raw * 100 / 1000;
         u32 reported <- 100 - mapped;
 
-        global.appData.actuatorRawPosition <- rawPosition;
-        global.appData.actuatorMotorLoad <- motorLoad;
-        global.appData.actuatorStatus <- msg.buf[0];
-        global.appData.actuatorTemp <- msg.buf[5];
-        global.appData.actuatorReportedPosition <- reported[0, 8];
-    }
-
-    // Timer ISR: enqueue the latest demand only — no CAN write in ISR context.
-    private void txTimerISR() {
-        u8 demanded <- global.appData.actuatorDemandedPosition;
-        bool ignored <- CanTxQueue.enqueue(demanded);
+        appData.actuatorRawPosition <- rawPosition;
+        appData.actuatorMotorLoad <- motorLoad;
+        appData.actuatorStatus <- msg.buf[0];
+        appData.actuatorTemp <- msg.buf[5];
+        appData.actuatorReportedPosition <- reported[0, 8];
     }
 
     // position (0..100) -> CAN command byte (0..250), closed/open inverted.
@@ -58,25 +50,22 @@ scope Actuator {
         canBus.enableFIFOInterrupt();
         canBus.onReceive(receiveCallbackISR);
         canBus.mailboxStatus();
-        txTimer.begin(txTimerISR, 20000);   // 20 ms, microseconds
         Serial.println("Actuator (C-Next) initialized");
     }
 
-    // Consumer: drain the queue and write CAN in main context (outside ISR).
+    // Send the latest demanded vane position. Called from the ~10ms control loop
+    // (main context), so the CAN write is never in an ISR. The demanded position
+    // is a single latest-value setpoint, so no queue is needed.
     void Loop() {
-        u8 position <- 0;
-        bool got <- CanTxQueue.dequeue(position);
-        while (got = true) {
-            CAN_message_t msg;
-            msg.id <- CMD_ID;
-            msg.flags.extended <- 0;
-            msg.len <- 8;
-            for (u8 i <- 0; i < 8; i +<- 1) {
-                msg.buf[i] <- 0;
-            }
-            msg.buf[0] <- positionToCommand(position);
-            canBus.write(msg);
-            got <- CanTxQueue.dequeue(position);
+        u8 demanded <- appData.actuatorDemandedPosition;
+        CAN_message_t msg;
+        msg.id <- CMD_ID;
+        msg.flags.extended <- 0;
+        msg.len <- 8;
+        for (u8 i <- 0; i < 8; i +<- 1) {
+            msg.buf[i] <- 0;
         }
+        msg.buf[0] <- positionToCommand(demanded);
+        canBus.write(msg);
     }
 }

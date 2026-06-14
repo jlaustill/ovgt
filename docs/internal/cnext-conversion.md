@@ -16,26 +16,30 @@ C-Next (transpiled). Modeled on OSSM's conversion log.
 (`Initialize`/`Loop` also flagged "unused" only because cppcheck analyzed the
 file in isolation — they are called from `ovgt.cpp`.)
 
-### Actuator module — AFTER (C-Next `actuator.cnx` → generated `actuator.cpp` + `can_tx_queue.cpp`)
+### Actuator module — AFTER (C-Next `actuator.cnx` → generated `actuator.cpp`)
 
 | Severity | Count | Notes |
 |----------|-------|-------|
 | HIGH | 0 | |
 | MEDIUM | 0 | |
-| LOW | 3 | 2× `badBitmaskCheck` (`\| (x << 0)` from C-Next bit-write codegen at offset 0); 1× `unreadVariable` `ignored` (intentional — drop-newest enqueue result) |
+| LOW | 2 | 2× `badBitmaskCheck` (`\| (x << 0)` from C-Next bit-write codegen at offset 0) |
 
 **Net:** the legacy dead PWM functions are gone (not carried into C-Next), and
 the remaining findings are trivial/generated. More importantly, the C-Next
 version is *structurally* safer than the C++ original: no raw pointers, MISRA
-rules enforced at the language level, and `atomic`/`critical {}` ISR primitives
-instead of an unguarded `Can0.write()` in a timer ISR.
+rules enforced at the language level, and the `Can0.write()` that previously ran
+in a 20 ms timer **ISR** now runs in `Loop()` (main context).
 
 ## Conversion Progress
 
 | File | Status | Notes |
 |------|--------|-------|
-| `src/display/can_tx_queue.cnx` | Done | SPSC ring buffer (`atomic` + `critical {}`) |
-| `src/display/actuator.cnx` | Done | FlexCAN_T4 RX (store-only) + timer-enqueue/Loop-drain TX |
+| `src/display/actuator.cnx` | Done | FlexCAN_T4 RX (store-only) + `Loop()` sends latest vane-position setpoint in main context |
+
+The vane position is a **latest-value singleton**, so the TX needs no queue — `Loop()`
+(main context, ~10 ms) just sends `appData.actuatorDemandedPosition`. (An earlier draft
+used a `CanTxQueue` SPSC ring buffer; removed — a FIFO is the right tool for the *future*
+TCM→ECU CAN-message *forwarding* feature, not for a single setpoint.)
 
 ## Next Candidates
 
@@ -48,29 +52,35 @@ instead of an unguarded `Can0.write()` in a timer ISR.
 ## Firmware Size (teensy41, after actuator conversion)
 
 ```
-FLASH: code:65068  data:12472  headers:8472   free for files:8040452
-RAM1:  variables:34976  code:59880
+FLASH: code:64876  data:12472  headers:8664   free for files:8040452
+RAM1:  variables:34976  code:59688
 RAM2:  variables:12416
 ```
 
 Comparable to the hand-written version — C-Next transpiles to equivalent C++,
 so there is no runtime/size penalty.
 
-## Known transpiler issues hit during conversion (filed upstream)
+## Known transpiler issues found (filed upstream)
+
+**Policy: we do NOT work around C-Next bugs — we fix them in c-next and contribute
+back.** No shims, no "de-facto safe" hacks, no avoiding a language feature
+downstream. Dependent features wait on the upstream fix.
 
 - **c-next#998** — scope-level `atomic` variable definitions drop `volatile`
-  (global `atomic` keeps it). Affects the `CanTxQueue` indices. De-facto safe
-  on this single-core Cortex-M7 (function-call boundaries + the `critical {}`
-  memory barrier), but the generated indices should be `volatile`; remove the
-  workaround note once fixed.
-- **c-next#997** — feature request: first-class ISR-safe queue (we hand-rolled
-  the SPSC ring buffer from `atomic` + `critical {}`).
+  (global `atomic` keeps it). Found while prototyping a scope-level SPSC ring
+  buffer. The actuator does **not** rely on it (vane position is a singleton with
+  no scope `atomic`), so nothing here is blocked. When the TCM→ECU forwarding FIFO
+  is built (which needs scope `atomic`), **#998 must be fixed in c-next first** —
+  do not ship a workaround.
+- **c-next#997** — feature request: first-class ISR-safe queue (for the future
+  CAN-message forwarding FIFO).
 
 ## Verification approach
 
-C-Next code using `atomic`/`critical {}` cannot be executed on x86 (PRIMASK/asm),
-and c-next's own test runner auto-skips execution of such code. So the queue and
-actuator are verified by (1) transpilation-output inspection and (2) on-target
-build + bench testing — matching the reference project (OSSM), which has no
-native unit tests of its C-Next code. The pure-C++ logic modules
-(`exhaustBrakeLogic`, `j1939Decode`) remain covered by the native Unity suite.
+The actuator is verified by (1) transpilation-output inspection and (2) on-target
+build + bench testing — matching the reference project (OSSM), which has no native
+unit tests of its C-Next code. The pure-C++ logic modules (`exhaustBrakeLogic`,
+`j1939Decode`) remain covered by the native Unity suite. (Note: C-Next
+`atomic`/`critical {}` code can't execute on x86 — PRIMASK/asm — and c-next's own
+runner auto-skips x86 execution of such code; relevant once the forwarding FIFO
+lands.)

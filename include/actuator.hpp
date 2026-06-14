@@ -8,7 +8,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "can_tx_queue.hpp"
 
 #ifdef __cplusplus
 extern "C" {
