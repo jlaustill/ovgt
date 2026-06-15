@@ -1,4 +1,5 @@
 #include "boostBprLogic.h"
+#include <math.h>
 
 static uint8_t clampVane(float vane, uint8_t lo, uint8_t hi) {
     if (vane < (float)lo) return lo;
@@ -12,18 +13,29 @@ static uint8_t clampVane(float vane, uint8_t lo, uint8_t hi) {
 // target: BPR below target -> close (raise drive); BPR above target -> open.
 uint8_t boostBprStep(const BoostInputs &in, const BoostConfig &cfg,
                      BoostState &state, float dtSeconds) {
-    // 1. Spool region. BPR = drive/boost is unreliable at low boost (divide by
+    // 1. Region selection with hysteresis. A single boost threshold made the vane
+    //    chatter (spool<->PI) when boost danced across it at light load. Two
+    //    thresholds give a dead band: climb into PI above boostPiPsi, drop back to
+    //    spool below boostSpoolPsi, hold the current region in between.
+    if (state.inPiRegion) {
+        if (in.boostGaugePsi < cfg.boostSpoolPsi) state.inPiRegion = false;
+    } else {
+        if (in.boostGaugePsi > cfg.boostPiPsi) state.inPiRegion = true;
+    }
+
+    // 2. Spool region. BPR = drive/boost is unreliable at low boost (divide by
     //    ~0), and a runaway BPR would fling the vanes open — the opposite of what
-    //    spool needs. Hold a fixed spool position and flag that we were spooling.
-    if (in.boostGaugePsi < cfg.boostMinPsi) {
+    //    spool needs. Hold a fixed spool position and flag the pending handoff.
+    if (!state.inPiRegion) {
         state.wasSpooling = true;
+        state.lastVanePercent = cfg.spoolPercent;
         return clampVane((float)cfg.spoolPercent,
                          cfg.vaneClosedPercent, cfg.vaneOpenPercent);
     }
 
     float travel = (float)cfg.vaneOpenPercent - (float)cfg.vaneClosedPercent;
 
-    // 2. Bumpless handoff. On the first PI cycle after spooling, seed the integral
+    // 3. Bumpless handoff. On the first PI cycle after spooling, seed the integral
     //    so the PI's output starts AT the spool position instead of jumping to
     //    fully open (vane = open - 0). Then the loop adjusts from there.
     if (state.wasSpooling) {
@@ -31,19 +43,32 @@ uint8_t boostBprStep(const BoostInputs &in, const BoostConfig &cfg,
         state.wasSpooling = false;
     }
 
-    // 3. PI loop on BPR. No derivative term: BPR is a noisy ratio. Positive error
+    // 4. PI loop on BPR. No derivative term: BPR is a noisy ratio. Positive error
     //    (BPR below target) means we need MORE drive pressure, i.e. MORE closure,
     //    i.e. a LOWER vane position. Closure adds up and subtracts from open.
     float bpr = in.tipGaugePsi / in.boostGaugePsi;
     float error = cfg.bprTarget - bpr;
-    state.integralTerm += cfg.ki * error * dtSeconds;
-    if (state.integralTerm < 0.0f) {
-        state.integralTerm = 0.0f;
+
+    // Anti-windup: only accumulate the integral when the actuator has reached the
+    // last commanded position. While it is still slewing (or physically can't get
+    // there), integrating just winds the term against a setpoint the plant hasn't
+    // had a chance to satisfy — which then dumps as a drive-pressure spike on the
+    // next tip-in. Freezing it while the actuator catches up keeps the term honest.
+    float trackingError = fabsf((float)state.lastVanePercent
+                                - (float)in.actuatorReportedPercent);
+    if (trackingError <= cfg.integralTrackingBand) {
+        state.integralTerm += cfg.ki * error * dtSeconds;
+        if (state.integralTerm < 0.0f) {
+            state.integralTerm = 0.0f;
+        }
+        if (state.integralTerm > travel) {
+            state.integralTerm = travel;  // cannot exceed full travel
+        }
     }
-    if (state.integralTerm > travel) {
-        state.integralTerm = travel;  // anti-windup: cannot exceed full travel
-    }
+
     float closure = cfg.kp * error + state.integralTerm;
     float vane = (float)cfg.vaneOpenPercent - closure;
-    return clampVane(vane, cfg.vaneClosedPercent, cfg.vaneOpenPercent);
+    uint8_t commanded = clampVane(vane, cfg.vaneClosedPercent, cfg.vaneOpenPercent);
+    state.lastVanePercent = commanded;
+    return commanded;
 }

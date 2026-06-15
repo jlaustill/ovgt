@@ -14,20 +14,23 @@ static const float HPA_TO_PSI = 0.0145038f;
 
 // BPR controller config. bprTarget/kp/ki are runtime-tunable over serial (see
 // setBprTarget/setKp/setKi) so the target (2.0 / 1.5 / 1.25 ...) and gains can be
-// swept on the truck without reflashing. spoolPercent/boostMinPsi and the vane
-// limits are compile-time. NOTE: BPR error is a 0..1 ratio, so kp is large
-// (~full vane travel per unit error), unlike the brake's psi-scale kp.
+// swept on the truck without reflashing. The rest are compile-time. NOTE: BPR
+// error is a 0..1 ratio, so kp is in the tens (vane-% per unit error), unlike the
+// brake's psi-scale kp. kp/ki below were validated on-truck (kp=88 was bang-bang;
+// kp=20/ki=20 glides and locks BPR=1.00 at sustained cruise).
 // No boost ceiling: targets BPR only (deliberate — see design doc).
 static BoostConfig boostConfig = {
     1.0f,                // bprTarget (runtime-tunable: `bpr <value>`)
-    2.0f,                // boostMinPsi (spool/BPR boundary)
+    1.5f,                // boostSpoolPsi (fall back to spool below this)
+    3.0f,                // boostPiPsi (engage PI above this; hysteresis dead band)
     25,                  // spoolPercent (fixed vane position while spooling)
     VANE_CLOSED_PERCENT, // vaneClosedPercent (max drive / boost)
     VANE_OPEN_PERCENT,   // vaneOpenPercent (relief / mechanical open limit)
-    88.0f,               // kp (runtime-tunable: `kp <value>`)
-    20.0f                // ki (runtime-tunable: `ki <value>`)
+    20.0f,               // kp (runtime-tunable: `kp <value>`)
+    20.0f,               // ki (runtime-tunable: `ki <value>`)
+    8.0f                 // integralTrackingBand (freeze integral while actuator slews)
 };
-static BoostState boostState = {0.0f, true};
+static BoostState boostState = {0.0f, true, false, VANE_CLOSED_PERCENT};
 static uint32_t lastUpdateMs = 0;
 
 #if !BOOST_USE_BPR
@@ -66,6 +69,8 @@ static uint8_t interpolate(float pressurePsi) {
 void BoostController::Initialize() {
     boostState.integralTerm = 0.0f;
     boostState.wasSpooling = true;
+    boostState.inPiRegion = false;
+    boostState.lastVanePercent = boostConfig.spoolPercent;
     lastUpdateMs = millis();
 #if BOOST_USE_BPR
     Serial.println("BoostController initialized (mode: BPR)");
@@ -89,6 +94,7 @@ void BoostController::update() {
     BoostInputs in;
     in.boostGaugePsi = boostGaugePsi;
     in.tipGaugePsi = appData.turbineInputPressureHpa * HPA_TO_PSI;
+    in.actuatorReportedPercent = appData.actuatorReportedPosition;
     appData.actuatorDemandedPosition = boostBprStep(in, boostConfig, boostState, dt);
 #else
     (void)dt;
@@ -111,8 +117,10 @@ void BoostController::printParams() {
     Serial.print(boostConfig.ki);
     Serial.print(" spool=");
     Serial.print(boostConfig.spoolPercent);
-    Serial.print("% boostMin=");
-    Serial.print(boostConfig.boostMinPsi);
+    Serial.print("% spoolPsi=");
+    Serial.print(boostConfig.boostSpoolPsi);
+    Serial.print(" piPsi=");
+    Serial.print(boostConfig.boostPiPsi);
     Serial.println("psi");
 #else
     Serial.println("boost mode: MAP (legacy lookup table)");

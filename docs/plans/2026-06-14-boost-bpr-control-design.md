@@ -140,8 +140,31 @@ Two changes to the above, to de-risk on-truck validation:
 - **Runtime tuning over serial** (BPR builds): `bpr <v>`, `kp <v>`, `ki <v>` mutate
   the live `BoostConfig` so the target and gains can be swept without reflashing;
   `params` prints the current mode/values; the 1 Hz debug line shows
-  `BPR:<measured>/<target>`. `spoolPercent`/`boostMinPsi` stay compile-time.
+  `BPR:<measured>/<target>`. `spoolPercent` and the thresholds stay compile-time.
 
 Note: the **150 MHz thermal revert** mentioned above was dropped — the overheat was
 a placement issue (proximity to the turbo during sustained high-EGT grade climbs),
 not the clock; the fix is relocating the controller. Clock stays at 600 MHz.
+
+## Addendum 2 (2026-06-15): on-truck validation + robustness pass
+
+Validated under sustained load (65 mph cruise): the loop **locks BPR = 1.00** with
+the vane parked at ~33% across a 10–15 psi boost range (TIP == boost). The concept
+and gains are proven. Three refinements from the road data, all in `boostBprLogic`:
+
+- **Gains baked**: `kp` 88 → **20**, `ki` **20**. kp=88 was effectively bang-bang
+  (a 1.0 BPR error saturated the whole travel); kp=20 glides. These are now the
+  compiled defaults so reboots come up dialed (still live-tunable).
+- **Hysteresis on the spool/PI boundary**: a single threshold made the vane chatter
+  spool↔open when boost danced across it. Replaced `boostMinPsi` with two
+  thresholds — engage PI above `boostPiPsi` (3.0), fall back to spool below
+  `boostSpoolPsi` (1.5), hold the region in the dead band.
+- **Actuator-tracking anti-windup**: at light cruise (BPR=1.0 unreachable) the
+  integral wound the vane shut while the actuator lagged, then dumped a
+  drive-pressure spike (BPR→2.0) on the next tip-in. The integral now only
+  accumulates while the actuator has reached the last command (within
+  `integralTrackingBand`), so it can't wind against a slewing/stuck actuator. Needs
+  `actuatorReportedPercent` (from `appData.actuatorReportedPosition`) as an input.
+
+Thermal: relocating the controller forward by the airbox (~1 ft off the turbine)
+held the MCU at 42–51 °C through 740 °C-EGT pulls — placement confirmed as the fix.
