@@ -53,10 +53,11 @@ void ovgt::handleDebug() {
     }
 
     char buf[160];
-    snprintf(buf, sizeof(buf), "BR:%s Boost:%.1fpsi BPR:%s Dem:%u%% Pos:%u%% TIP:%.1fpsi CIT:%dC CIP:%.1fpsi TIT:%dC Brk:%s MCU:%.0fC Clk:%luMHz",
+    snprintf(buf, sizeof(buf), "BR:%s Boost:%.1fpsi BPR:%s/%.2f Dem:%u%% Pos:%u%% TIP:%.1fpsi CIT:%dC CIP:%.1fpsi TIT:%dC Brk:%s MCU:%.0fC Clk:%luMHz",
         boBuf,
         (double)(boostGauge * 0.0145038f),
         brBuf,
+        (double)BoostController::getBprTarget(),
         manualMode ? manualPwm : appData.actuatorDemandedPosition,
         appData.actuatorReportedPosition,
         (double)(appData.turbineInputPressureHpa * 0.0145038f),
@@ -116,6 +117,7 @@ void ovgt::setup() {
 
     Serial.println("Setup complete");
     Serial.println("Type a number 0-100 to set vane position %, or 'auto' for normal operation");
+    Serial.println("Tuning: 'bpr <v>', 'kp <v>', 'ki <v>', 'params' (BPR mode only)");
 }
 
 void ovgt::handleSerial() {
@@ -130,6 +132,23 @@ void ovgt::handleSerial() {
             if (strcmp(buf, "auto") == 0) {
                 manualMode = false;
                 Serial.println("Switched to auto mode");
+            } else if (strcmp(buf, "params") == 0) {
+                BoostController::printParams();
+            } else if (strncmp(buf, "bpr ", 4) == 0) {
+                float value = atof(buf + 4);
+                BoostController::setBprTarget(value);
+                Serial.print("BPR target = ");
+                Serial.println(value);
+            } else if (strncmp(buf, "kp ", 3) == 0) {
+                float value = atof(buf + 3);
+                BoostController::setKp(value);
+                Serial.print("kp = ");
+                Serial.println(value);
+            } else if (strncmp(buf, "ki ", 3) == 0) {
+                float value = atof(buf + 3);
+                BoostController::setKi(value);
+                Serial.print("ki = ");
+                Serial.println(value);
             } else {
                 int val = atoi(buf);
                 if (val >= 0 && val <= 100) {

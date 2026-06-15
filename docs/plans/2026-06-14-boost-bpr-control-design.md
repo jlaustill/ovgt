@@ -128,3 +128,20 @@ Native Unity tests for `boostBprLogic` (pure, no hardware):
 - **Parallel (not this spec):** the Teensy thermal issue — relocate the
   controller to a cooler spot (under the fender) and revert to 150 MHz; the engine
   bay over-heats even a healthy chip under sustained load.
+
+## Addendum (2026-06-14): compile-time hedge + live tuning
+
+Two changes to the above, to de-risk on-truck validation:
+
+- **Compile-time mode switch** `BOOST_USE_BPR` in `boostController.cpp`: 1 = the
+  BPR PI loop (this design); 0 = the legacy boost→vane lookup map, kept as a
+  fallback. The unused path is `#if`-compiled out (no dead code). Flip + reflash to
+  switch — the map is **not** removed, it is the hedge.
+- **Runtime tuning over serial** (BPR builds): `bpr <v>`, `kp <v>`, `ki <v>` mutate
+  the live `BoostConfig` so the target and gains can be swept without reflashing;
+  `params` prints the current mode/values; the 1 Hz debug line shows
+  `BPR:<measured>/<target>`. `spoolPercent`/`boostMinPsi` stay compile-time.
+
+Note: the **150 MHz thermal revert** mentioned above was dropped — the overheat was
+a placement issue (proximity to the turbo during sustained high-EGT grade climbs),
+not the clock; the fix is relocating the controller. Clock stays at 600 MHz.
