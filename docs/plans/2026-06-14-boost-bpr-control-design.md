@@ -159,12 +159,15 @@ and gains are proven. Three refinements from the road data, all in `boostBprLogi
   spool↔open when boost danced across it. Replaced `boostMinPsi` with two
   thresholds — engage PI above `boostPiPsi` (3.0), fall back to spool below
   `boostSpoolPsi` (1.5), hold the region in the dead band.
-- **Actuator-tracking anti-windup**: at light cruise (BPR=1.0 unreachable) the
-  integral wound the vane shut while the actuator lagged, then dumped a
-  drive-pressure spike (BPR→2.0) on the next tip-in. The integral now only
-  accumulates while the actuator has reached the last command (within
-  `integralTrackingBand`), so it can't wind against a slewing/stuck actuator. Needs
-  `actuatorReportedPercent` (from `appData.actuatorReportedPosition`) as an input.
+- **Actuator-tracking anti-windup**: ~~the integral only accumulates while the
+  actuator has reached the last command (within `integralTrackingBand`)~~
+  **REVERTED (2026-06-15).** On-truck it caused a noticeable **low-RPM power loss**:
+  the actuator slews continuously during normal driving, so `|commanded - reported|`
+  was almost always > the band, freezing the integral and starving the closing
+  action — the vane ran ~15–20% too open at moderate load → less drive pressure and
+  boost. Back to the plain `[0, travel]` integral clamp (the version that locked
+  BPR=1.00 and made good power). The tip-in spike it targeted is the lesser evil and
+  can be addressed later with a gentler scheme that doesn't fight the slew rate.
 
 Thermal: relocating the controller forward by the airbox (~1 ft off the turbine)
 held the MCU at 42–51 °C through 740 °C-EGT pulls — placement confirmed as the fix.

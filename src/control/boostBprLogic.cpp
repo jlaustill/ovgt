@@ -1,5 +1,4 @@
 #include "boostBprLogic.h"
-#include <math.h>
 
 static uint8_t clampVane(float vane, uint8_t lo, uint8_t hi) {
     if (vane < (float)lo) return lo;
@@ -28,7 +27,6 @@ uint8_t boostBprStep(const BoostInputs &in, const BoostConfig &cfg,
     //    spool needs. Hold a fixed spool position and flag the pending handoff.
     if (!state.inPiRegion) {
         state.wasSpooling = true;
-        state.lastVanePercent = cfg.spoolPercent;
         return clampVane((float)cfg.spoolPercent,
                          cfg.vaneClosedPercent, cfg.vaneOpenPercent);
     }
@@ -45,30 +43,20 @@ uint8_t boostBprStep(const BoostInputs &in, const BoostConfig &cfg,
 
     // 4. PI loop on BPR. No derivative term: BPR is a noisy ratio. Positive error
     //    (BPR below target) means we need MORE drive pressure, i.e. MORE closure,
-    //    i.e. a LOWER vane position. Closure adds up and subtracts from open.
+    //    i.e. a LOWER vane position. Closure adds up and subtracts from open. The
+    //    integral is clamped to [0, travel] (anti-windup); a position-tracking gate
+    //    was tried and reverted — it starved the integral during normal slewing
+    //    and left the vane too open (lost low-RPM boost).
     float bpr = in.tipGaugePsi / in.boostGaugePsi;
     float error = cfg.bprTarget - bpr;
-
-    // Anti-windup: only accumulate the integral when the actuator has reached the
-    // last commanded position. While it is still slewing (or physically can't get
-    // there), integrating just winds the term against a setpoint the plant hasn't
-    // had a chance to satisfy — which then dumps as a drive-pressure spike on the
-    // next tip-in. Freezing it while the actuator catches up keeps the term honest.
-    float trackingError = fabsf((float)state.lastVanePercent
-                                - (float)in.actuatorReportedPercent);
-    if (trackingError <= cfg.integralTrackingBand) {
-        state.integralTerm += cfg.ki * error * dtSeconds;
-        if (state.integralTerm < 0.0f) {
-            state.integralTerm = 0.0f;
-        }
-        if (state.integralTerm > travel) {
-            state.integralTerm = travel;  // cannot exceed full travel
-        }
+    state.integralTerm += cfg.ki * error * dtSeconds;
+    if (state.integralTerm < 0.0f) {
+        state.integralTerm = 0.0f;
     }
-
+    if (state.integralTerm > travel) {
+        state.integralTerm = travel;  // cannot exceed full travel
+    }
     float closure = cfg.kp * error + state.integralTerm;
     float vane = (float)cfg.vaneOpenPercent - closure;
-    uint8_t commanded = clampVane(vane, cfg.vaneClosedPercent, cfg.vaneOpenPercent);
-    state.lastVanePercent = commanded;
-    return commanded;
+    return clampVane(vane, cfg.vaneClosedPercent, cfg.vaneOpenPercent);
 }

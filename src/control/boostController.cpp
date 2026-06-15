@@ -27,10 +27,9 @@ static BoostConfig boostConfig = {
     VANE_CLOSED_PERCENT, // vaneClosedPercent (max drive / boost)
     VANE_OPEN_PERCENT,   // vaneOpenPercent (relief / mechanical open limit)
     20.0f,               // kp (runtime-tunable: `kp <value>`)
-    20.0f,               // ki (runtime-tunable: `ki <value>`)
-    8.0f                 // integralTrackingBand (freeze integral while actuator slews)
+    20.0f                // ki (runtime-tunable: `ki <value>`)
 };
-static BoostState boostState = {0.0f, true, false, VANE_CLOSED_PERCENT};
+static BoostState boostState = {0.0f, true, false};
 static uint32_t lastUpdateMs = 0;
 
 #if !BOOST_USE_BPR
@@ -70,7 +69,6 @@ void BoostController::Initialize() {
     boostState.integralTerm = 0.0f;
     boostState.wasSpooling = true;
     boostState.inPiRegion = false;
-    boostState.lastVanePercent = boostConfig.spoolPercent;
     lastUpdateMs = millis();
 #if BOOST_USE_BPR
     Serial.println("BoostController initialized (mode: BPR)");
@@ -94,7 +92,6 @@ void BoostController::update() {
     BoostInputs in;
     in.boostGaugePsi = boostGaugePsi;
     in.tipGaugePsi = appData.turbineInputPressureHpa * HPA_TO_PSI;
-    in.actuatorReportedPercent = appData.actuatorReportedPosition;
     appData.actuatorDemandedPosition = boostBprStep(in, boostConfig, boostState, dt);
 #else
     (void)dt;
