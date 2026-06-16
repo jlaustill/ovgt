@@ -7,6 +7,7 @@
 #include "sensors/cotSensor.h"
 #include "sensors/citSensor.h"
 #include "sensors/totSensor.h"
+#include "sensors/compressorEfficiency.h"
 #include "storage/fram.h"
 #include "sensors/j1939.h"
 #include "control/boostController.h"
@@ -52,8 +53,21 @@ void ovgt::handleDebug() {
         snprintf(boBuf, sizeof(boBuf), "---");
     }
 
-    char buf[160];
-    snprintf(buf, sizeof(buf), "BR:%s Boost:%.1fpsi BPR:%s/%.2f Dem:%u%% Pos:%u%% TIP:%.1fpsi CIT:%dC CIP:%.1fpsi TIT:%dC Brk:%s MCU:%.0fC Clk:%luMHz",
+    char ceBuf[8];
+    float pressureRatio = (appData.compressorInputPressureHpaa > 0)
+        ? (float)appData.compressorOutputPressureHpaa / appData.compressorInputPressureHpaa
+        : 0.0f;
+    float efficiency = compressorEfficiency(pressureRatio,
+                                            (float)appData.compressorInputTempC,
+                                            (float)appData.compressorOutputTempC);
+    if (efficiency >= 0.0f) {
+        snprintf(ceBuf, sizeof(ceBuf), "%.0f%%", (double)(efficiency * 100.0f));
+    } else {
+        snprintf(ceBuf, sizeof(ceBuf), "--");
+    }
+
+    char buf[200];
+    snprintf(buf, sizeof(buf), "BR:%s Boost:%.1fpsi BPR:%s/%.2f Dem:%u%% Pos:%u%% TIP:%.1fpsi CIT:%dC COT:%dC CE:%s CIP:%.1fpsi TIT:%dC Brk:%s MCU:%.0fC Clk:%luMHz",
         boBuf,
         (double)(boostGauge * 0.0145038f),
         brBuf,
@@ -62,6 +76,8 @@ void ovgt::handleDebug() {
         appData.actuatorReportedPosition,
         (double)(appData.turbineInputPressureHpa * 0.0145038f),
         appData.compressorInputTempC,
+        appData.compressorOutputTempC,
+        ceBuf,
         (double)(appData.compressorInputPressureHpaa * 0.0145038f),
         appData.turbineInletTempC,
         appData.exhaustBrakeActive ? "ON" : "off",
@@ -104,7 +120,7 @@ void ovgt::setup() {
 
     AdcSensors::Initialize();
     TitSensor::Initialize();
-    // CotSensor::Initialize();
+    CotSensor::Initialize();
     // CitSensor::Initialize();
     // TotSensor::Initialize();
     Fram::Initialize();
@@ -174,7 +190,7 @@ void ovgt::loop() {
 
     AdcSensors::update();
     TitSensor::update();
-    // CotSensor::update();
+    CotSensor::update();
     // CitSensor::update();
     // TotSensor::update();
 

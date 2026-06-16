@@ -19,12 +19,19 @@ void CotSensor::Initialize() {
 }
 
 void CotSensor::update() {
-    static uint32_t last = 0;
-    if (millis() - last > 1000) {
-        last = millis();
-        uint8_t f = tc.readFault();
-        if (f) { Serial.print("COT fault=0x"); Serial.println(f, HEX); }
+    if (digitalRead(DRDY_PIN)) return;  // wait for a fresh conversion
+    uint8_t fault = tc.readFault();
+    if (fault) {
+        // Open circuit / out-of-range / etc.: reject the sample and hold the last
+        // good value rather than store the railed reading (which would poison COT
+        // and the compressor-efficiency calc). Rate-limit the diagnostic print.
+        static uint32_t lastFaultPrint = 0;
+        if (millis() - lastFaultPrint > 1000) {
+            lastFaultPrint = millis();
+            Serial.print("COT fault=0x");
+            Serial.println(fault, HEX);
+        }
+        return;
     }
-    if (digitalRead(DRDY_PIN)) return;
     appData.compressorOutputTempC = (int16_t)tc.readThermocoupleTemperature();
 }
