@@ -18,8 +18,10 @@ void CotSensor::Initialize() {
     Serial.println("CotSensor initialized");
 }
 
-void CotSensor::update() {
-    if (digitalRead(DRDY_PIN)) return;  // wait for a fresh conversion
+// Returns true only when a fresh, fault-free reading was stored (drives the
+// ~10 Hz cotSettle feed in the main loop).
+bool CotSensor::update() {
+    if (digitalRead(DRDY_PIN)) return false;  // no fresh conversion
     uint8_t fault = tc.readFault();
     if (fault) {
         // Open circuit / out-of-range / etc.: reject the sample and hold the last
@@ -31,7 +33,8 @@ void CotSensor::update() {
             Serial.print("COT fault=0x");
             Serial.println(fault, HEX);
         }
-        return;
+        return false;
     }
     appData.compressorOutputTempC = tc.readThermocoupleTemperature();
+    return true;
 }

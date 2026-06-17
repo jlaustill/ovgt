@@ -4,7 +4,7 @@
 class CotSensor {
     public:
         static void Initialize();
-        static void update();
+        static bool update();
 };
 
 #endif

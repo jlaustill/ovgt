@@ -8,6 +8,7 @@
 #include "sensors/citSensor.h"
 #include "sensors/totSensor.h"
 #include "sensors/compressorEfficiency.h"
+#include "sensors/cotSettle.h"
 #include "storage/fram.h"
 #include "sensors/j1939.h"
 #include "control/boostController.h"
@@ -18,6 +19,17 @@ elapsedMillis loopElapsed;
 elapsedMicros adcElapsed;
 
 AppData appData;
+
+static CotSettleState cotSettleState;
+static CotSettleConfig cotSettleCfg = {
+    0.3f,   // cotSlopeFlatCperS
+    0.5f,   // boostSlopeFlatPsiPerS
+    2.0f,   // settledSeconds
+    3.0f,   // minStepC
+    512     // maxBufferSamples
+};
+static bool ceSettled = false;
+static elapsedMicros cotSampleDt;
 
 volatile uint32_t ovgt::count;
 volatile bool ovgt::debugFlag = false;
@@ -61,7 +73,8 @@ void ovgt::handleDebug() {
                                             (float)appData.compressorInputTempC,
                                             (float)appData.compressorOutputTempC);
     if (efficiency >= 0.0f) {
-        snprintf(ceBuf, sizeof(ceBuf), "%.0f%%", (double)(efficiency * 100.0f));
+        snprintf(ceBuf, sizeof(ceBuf), "%.0f%%%s",
+                 (double)(efficiency * 100.0f), ceSettled ? "" : "~");
     } else {
         snprintf(ceBuf, sizeof(ceBuf), "--");
     }
@@ -125,6 +138,7 @@ void ovgt::setup() {
     // TotSensor::Initialize();
     Fram::Initialize();
     BoostController::Initialize();
+    cotSettleInit(cotSettleState);
     ExhaustBrakeController::Initialize();
     Actuator_Initialize();
     J1939::Initialize();
@@ -190,7 +204,25 @@ void ovgt::loop() {
 
     AdcSensors::update();
     TitSensor::update();
-    CotSensor::update();
+    if (CotSensor::update()) {
+        float cotDt = cotSampleDt / 1000000.0f;
+        cotSampleDt = 0;
+        int16_t boostHpa = (int16_t)appData.compressorOutputPressureHpaa
+                         - (int16_t)appData.compressorInputPressureHpaa;
+        if (boostHpa < 0) boostHpa = 0;
+        CotSettleResult ceRes = cotSettleStep(cotSettleState, cotSettleCfg,
+                                              appData.compressorOutputTempC,
+                                              boostHpa * 0.0145038f, cotDt);
+        ceSettled = ceRes.settled;
+        if (ceRes.measurementReady) {
+            char sbuf[64];
+            snprintf(sbuf, sizeof(sbuf),
+                     "COT settle: tau=%.1fs t_settle=%.1fs dT=%+.1fC",
+                     (double)ceRes.tauSeconds, (double)ceRes.settleSeconds,
+                     (double)ceRes.stepC);
+            Serial.println(sbuf);
+        }
+    }
     // CitSensor::update();
     // TotSensor::update();
 
