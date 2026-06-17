@@ -67,7 +67,7 @@ void ovgt::handleDebug() {
     }
 
     char buf[200];
-    snprintf(buf, sizeof(buf), "BR:%s Boost:%.1fpsi BPR:%s/%.2f Dem:%u%% Pos:%u%% TIP:%.1fpsi CIT:%dC COT:%dC CE:%s CIP:%.1fpsi TIT:%dC Brk:%s MCU:%.0fC Clk:%luMHz",
+    snprintf(buf, sizeof(buf), "BR:%s Boost:%.1fpsi BPR:%s/%.2f Dem:%u%% Pos:%u%% TIP:%.1fpsi CIT:%.1fC COT:%.1fC CE:%s CIP:%.1fpsi TIT:%dC Brk:%s MCU:%.0fC Clk:%luMHz",
         boBuf,
         (double)(boostGauge * 0.0145038f),
         brBuf,
@@ -75,8 +75,8 @@ void ovgt::handleDebug() {
         manualMode ? manualPwm : appData.actuatorDemandedPosition,
         appData.actuatorReportedPosition,
         (double)(appData.turbineInputPressureHpa * 0.0145038f),
-        appData.compressorInputTempC,
-        appData.compressorOutputTempC,
+        (double)appData.compressorInputTempC,
+        (double)appData.compressorOutputTempC,
         ceBuf,
         (double)(appData.compressorInputPressureHpaa * 0.0145038f),
         appData.turbineInletTempC,

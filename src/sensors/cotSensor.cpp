@@ -33,5 +33,5 @@ void CotSensor::update() {
         }
         return;
     }
-    appData.compressorOutputTempC = (int16_t)tc.readThermocoupleTemperature();
+    appData.compressorOutputTempC = tc.readThermocoupleTemperature();
 }

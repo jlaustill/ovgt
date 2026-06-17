@@ -183,7 +183,7 @@ void AdcSensors::processResult(uint8_t channel, float voltage) {
                 break;
             }
             float resistance = PULLDOWN_R * voltage / (NTC_VCC - voltage);
-            appData.compressorInputTempC = (int16_t)steinhartHart(resistance);
+            appData.compressorInputTempC = steinhartHart(resistance);
             break;
         }
         case 3: {

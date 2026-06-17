@@ -11,13 +11,13 @@ struct AppData {
     uint16_t actuatorMotorLoad;
     uint8_t actuatorStatus;
     uint16_t compressorOutputPressureHpaa;
-    int16_t compressorInputTempC;
+    float compressorInputTempC;
     uint16_t compressorInputPressureHpaa;
     uint16_t turbineInputPressureHpa;
     float turbineInputVoltage;
     float tipZeroVoltage;
     int16_t turbineInletTempC;
-    int16_t compressorOutputTempC;
+    float compressorOutputTempC;
     int16_t turbineOutletTempC;
     int16_t oilTempC;
     uint16_t oilPressureHpa;
