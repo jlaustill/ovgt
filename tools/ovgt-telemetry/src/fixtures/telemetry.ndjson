@@ -1,0 +1,5 @@
+{"type":"t","t_ms":46649,"mode":"auto","cop_hpa":871,"cip_hpa":875,"boost_psi":0.00,"br":1.00,"tip_psi":0.00,"bpr":0.00,"bpr_target":1.00,"cit_c":20.32,"cot_c":20.91,"tit_c":20,"ce_pct":-1.00,"ce_settled":false,"dem_pct":25,"pos_pct":27,"brake":false}
+{"type":"t","t_ms":50599,"mode":"auto","cop_hpa":871,"cip_hpa":875,"boost_psi":0.00,"br":1.00,"tip_psi":0.00,"bpr":0.00,"bpr_target":1.00,"cit_c":20.32,"cot_c":20.95,"tit_c":20,"ce_pct":-1.00,"ce_settled":false,"dem_pct":25,"pos_pct":27,"brake":false}
+{"type":"s","t_ms":99999,"tau_s":5.20,"settle_s":8.10,"step_c":42.30,"cot_slope_c_s":0.05,"boost_slope_psi_s":0.01,"settle_timer_s":2.30}
+Setup complete
+BPR target = 1.00
