@@ -128,7 +128,7 @@ async function main(): Promise<void> {
     onStatus: (st, d) => feed.emit("status", d ? `${st}: ${d}` : st),
   });
 
-  render(
+  const instance = render(
     <Root
       feed={feed}
       sendCommand={(c) => link.send(c)}
@@ -144,12 +144,12 @@ async function main(): Promise<void> {
     link.start();
   });
 
-  const shutdown = async (): Promise<void> => {
-    link.stop();
-    await store?.close();
-    process.exit(0);
-  };
-  process.on("SIGINT", () => void shutdown());
+  // 'q' (App's exit()) or Ctrl-C (Ink's default) resolve this; only then
+  // release the serial port + Mongo so the process actually exits.
+  await instance.waitUntilExit();
+  link.stop();
+  await store?.close();
+  process.exit(0);
 }
 
 void main();
