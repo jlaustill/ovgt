@@ -1,6 +1,7 @@
 .pio/
 .vscode/
 .cnx/
+*.log
 
 # Prerequisites
 *.d
