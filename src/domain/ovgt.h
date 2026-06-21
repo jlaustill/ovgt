@@ -7,12 +7,10 @@ class ovgt
         static volatile uint32_t count;
         static uint8_t manualPwm;
         static bool manualMode;
-        static volatile bool debugFlag;
         static uint32_t cyclesAdc;
         static uint32_t cyclesBoost;
         static uint32_t cyclesActuator;
         static uint32_t cyclesDebug;
-        static void handleDebugTimer();
         static void handleDebug();
         static void handleSerial();
 

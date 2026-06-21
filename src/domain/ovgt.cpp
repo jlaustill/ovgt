@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "ovgt.h"
 #include <actuator.hpp>
+#include <json.h>
 #include "AppData.h"
 #include "sensors/adcSensors.h"
 #include "sensors/titSensor.h"
@@ -14,7 +15,6 @@
 #include "control/boostController.h"
 #include "control/exhaustBrakeController.h"
 
-IntervalTimer debugTimer;
 elapsedMillis loopElapsed;
 elapsedMicros adcElapsed;
 
@@ -32,7 +32,6 @@ static bool ceSettled = false;
 static elapsedMicros cotSampleDt;
 
 volatile uint32_t ovgt::count;
-volatile bool ovgt::debugFlag = false;
 
 uint8_t ovgt::manualPwm = 0;
 bool ovgt::manualMode = false;
@@ -41,68 +40,45 @@ uint32_t ovgt::cyclesBoost = 0;
 uint32_t ovgt::cyclesActuator = 0;
 uint32_t ovgt::cyclesDebug = 0;
 
-void ovgt::handleDebugTimer() {
-    debugFlag = true;
-}
-
 void ovgt::handleDebug() {
-    if (!debugFlag) return;
-    debugFlag = false;
+    if (count % 10 != 0) return;  // emit at 10 Hz (loop runs at 100 Hz)
 
-    int16_t boostGauge = (int16_t)appData.compressorOutputPressureHpaa - (int16_t)appData.compressorInputPressureHpaa;
-
-    char brBuf[16];
-    if (boostGauge != 0) {
-        snprintf(brBuf, sizeof(brBuf), "%.2f", (float)appData.turbineInputPressureHpa / boostGauge);
-    } else {
-        snprintf(brBuf, sizeof(brBuf), "\xe2\x88\x9e");
-    }
-
-    char boBuf[8];
-    if (appData.compressorInputPressureHpaa > 0) {
-        snprintf(boBuf, sizeof(boBuf), "%.2f", (float)appData.compressorOutputPressureHpaa / appData.compressorInputPressureHpaa);
-    } else {
-        snprintf(boBuf, sizeof(boBuf), "---");
-    }
-
-    char ceBuf[8];
+    int16_t boostGauge = (int16_t)appData.compressorOutputPressureHpaa
+                       - (int16_t)appData.compressorInputPressureHpaa;
+    if (boostGauge < 0) boostGauge = 0;
+    float boostPsi = boostGauge * 0.0145038f;
     float pressureRatio = (appData.compressorInputPressureHpaa > 0)
         ? (float)appData.compressorOutputPressureHpaa / appData.compressorInputPressureHpaa
+        : 0.0f;
+    float bpr = (boostGauge != 0)
+        ? (float)appData.turbineInputPressureHpa / boostGauge
         : 0.0f;
     float efficiency = compressorEfficiency(pressureRatio,
                                             (float)appData.compressorInputTempC,
                                             (float)appData.compressorOutputTempC);
-    if (efficiency >= 0.0f) {
-        snprintf(ceBuf, sizeof(ceBuf), "%.0f%%%s",
-                 (double)(efficiency * 100.0f), ceSettled ? "" : "~");
-    } else {
-        snprintf(ceBuf, sizeof(ceBuf), "--");
-    }
 
-    char buf[200];
-    snprintf(buf, sizeof(buf), "BR:%s Boost:%.1fpsi BPR:%s/%.2f Dem:%u%% Pos:%u%% TIP:%.1fpsi CIT:%.1fC COT:%.1fC CE:%s CIP:%.1fpsi TIT:%dC Brk:%s MCU:%.0fC Clk:%luMHz",
-        boBuf,
-        (double)(boostGauge * 0.0145038f),
-        brBuf,
-        (double)BoostController::getBprTarget(),
-        manualMode ? manualPwm : appData.actuatorDemandedPosition,
-        appData.actuatorReportedPosition,
-        (double)(appData.turbineInputPressureHpa * 0.0145038f),
-        (double)appData.compressorInputTempC,
-        (double)appData.compressorOutputTempC,
-        ceBuf,
-        (double)(appData.compressorInputPressureHpaa * 0.0145038f),
-        appData.turbineInletTempC,
-        appData.exhaustBrakeActive ? "ON" : "off",
-        (double)tempmonGetTemp(),
-        (unsigned long)(F_CPU_ACTUAL / 1000000));
-    Serial.println(buf);
-
-    count = 0;
-    cyclesAdc = 0;
-    cyclesBoost = 0;
-    cyclesActuator = 0;
-    cyclesDebug = 0;
+    Json_begin();
+    Json_addStr("type", "t");
+    Json_addUint("t_ms", (uint32_t)millis());
+    Json_addStr("mode", manualMode ? "manual" : (appData.exhaustBrakeActive ? "brake" : "auto"));
+    Json_addUint("cop_hpa", appData.compressorOutputPressureHpaa);
+    Json_addUint("cip_hpa", appData.compressorInputPressureHpaa);
+    Json_addFloat2("boost_psi", boostPsi);
+    Json_addFloat2("br", pressureRatio);
+    Json_addFloat2("tip_psi", appData.turbineInputPressureHpa * 0.0145038f);
+    Json_addFloat2("bpr", bpr);
+    Json_addFloat2("bpr_target", BoostController::getBprTarget());
+    Json_addFloat2("cit_c", appData.compressorInputTempC);
+    Json_addFloat2("cot_c", appData.compressorOutputTempC);
+    Json_addInt("tit_c", appData.turbineInletTempC);
+    Json_addFloat2("ce_pct", efficiency >= 0.0f ? efficiency * 100.0f : -1.0f);
+    Json_addBool("ce_settled", ceSettled);
+    Json_addUint("dem_pct", manualMode ? manualPwm : appData.actuatorDemandedPosition);
+    Json_addUint("pos_pct", appData.actuatorReportedPosition);
+    Json_addBool("brake", appData.exhaustBrakeActive);
+    Json_end();
+    for (uint32_t i = 0; i < Json_len(); i++) Serial.write(Json_at(i));
+    Serial.write('\n');
 }
 
 
@@ -142,8 +118,6 @@ void ovgt::setup() {
     ExhaustBrakeController::Initialize();
     Actuator_Initialize();
     J1939::Initialize();
-
-    debugTimer.begin(handleDebugTimer, 1 * 1000 * 1000); // 1s
 
     Serial.println("Setup complete");
     Serial.println("Type a number 0-100 to set vane position %, or 'auto' for normal operation");
@@ -215,12 +189,18 @@ void ovgt::loop() {
                                               boostHpa * 0.0145038f, cotDt);
         ceSettled = ceRes.settled;
         if (ceRes.measurementReady) {
-            char sbuf[64];
-            snprintf(sbuf, sizeof(sbuf),
-                     "COT settle: tau=%.1fs t_settle=%.1fs dT=%+.1fC",
-                     (double)ceRes.tauSeconds, (double)ceRes.settleSeconds,
-                     (double)ceRes.stepC);
-            Serial.println(sbuf);
+            Json_begin();
+            Json_addStr("type", "s");
+            Json_addUint("t_ms", (uint32_t)millis());
+            Json_addFloat2("tau_s", ceRes.tauSeconds);
+            Json_addFloat2("settle_s", ceRes.settleSeconds);
+            Json_addFloat2("step_c", ceRes.stepC);
+            Json_addFloat2("cot_slope_c_s", ceRes.cotSlopeCperS);
+            Json_addFloat2("boost_slope_psi_s", ceRes.boostSlopePsiPerS);
+            Json_addFloat2("settle_timer_s", ceRes.settleTimerS);
+            Json_end();
+            for (uint32_t i = 0; i < Json_len(); i++) Serial.write(Json_at(i));
+            Serial.write('\n');
         }
     }
     // CitSensor::update();
