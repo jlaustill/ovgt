@@ -1,6 +1,6 @@
 import { MongoClient } from "mongodb";
 import { afterAll, expect, test } from "vitest";
-import { MongoStore } from "./store";
+import { MongoStore, type SessionDoc } from "./store";
 import type { SettleEvent, TelemetrySample } from "./types";
 
 const uri = "mongodb://127.0.0.1:27017";
@@ -37,7 +37,7 @@ test("connect creates a session and inserts telemetry + settle with sessionId", 
   const db = client.db(dbName);
   const tdoc = await db.collection("telemetry").findOne({ sessionId });
   const sdoc = await db.collection("settle_events").findOne({ sessionId });
-  const sess = await db.collection("sessions").findOne({ _id: sessionId });
+  const sess = await db.collection<SessionDoc>("sessions").findOne({ _id: sessionId });
   await client.close();
 
   expect(tdoc?.cot_c).toBeCloseTo(20.9);
