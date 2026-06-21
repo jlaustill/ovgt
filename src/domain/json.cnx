@@ -1,0 +1,144 @@
+// Reusable heap-free NDJSON builder for OVGT telemetry.
+// Fixed buffer + cursor, byte-writes only — no heap, no snprintf; deterministic
+// and MISRA-clean. Design: docs/plans/2026-06-19-mongodb-telemetry-design.md.
+//
+// Usage from C++ (transpiled as Json_*):
+//   Json_begin();
+//   Json_addUint("t_ms", millis()); Json_addStr("mode", "auto"); ...
+//   Json_end();
+//   for (uint32_t i = 0; i < Json_len(); i++) Serial.write(Json_at(i));
+//   Serial.write('\n');
+scope Json {
+    string<640> buf <- "";   // explicit init required (#1019); sized for the worst-case telemetry object
+    u32 cursor;
+    bool full;
+    bool needComma;
+
+    void putByte(u8 c) {
+        u32 i <- this.cursor;
+        bool room <- i < 639;
+        if (room = true) {
+            this.buf[i] <- c;
+            this.cursor <- i + 1;
+        } else {
+            this.full <- true;
+        }
+    }
+
+    void putRaw(const string<24> s) {
+        u32 len <- s.char_count;
+        u32 i <- 0;
+        while (i < len) {
+            u8 ch <- s[i];
+            this.putByte(ch);
+            i <- i + 1;
+        }
+    }
+
+    void putUintRaw(u32 v) {
+        if (v = 0) {
+            this.putByte('0');
+            return;
+        }
+        u32 div <- 1;
+        u32 t <- v;
+        while (t >= 10) {
+            div <- div * 10;
+            t <- t / 10;
+        }
+        while (div > 0) {
+            u32 digit <- (v / div) % 10 + 48;
+            u8 dc <- digit[0, 8];
+            this.putByte(dc);
+            div <- div / 10;
+        }
+    }
+
+    void key(const string<24> k) {
+        if (this.needComma = true) {
+            this.putByte(',');
+        }
+        this.needComma <- true;
+        this.putByte('"');
+        this.putRaw(k);
+        this.putByte('"');
+        this.putByte(':');
+    }
+
+    public void begin() {
+        this.cursor <- 0;
+        this.full <- false;
+        this.needComma <- false;
+        this.putByte('{');
+    }
+
+    public void addUint(const string<24> k, u32 v) {
+        this.key(k);
+        this.putUintRaw(v);
+    }
+
+    public void addInt(const string<24> k, i32 v) {
+        this.key(k);
+        bool neg <- v < 0;
+        if (neg = true) {
+            this.putByte('-');
+            i32 pos <- 0 - v;
+            this.putUintRaw(pos[0, 32]);
+        } else {
+            this.putUintRaw(v[0, 32]);
+        }
+    }
+
+    public void addBool(const string<24> k, bool v) {
+        this.key(k);
+        if (v = true) {
+            this.putRaw("true");
+        } else {
+            this.putRaw("false");
+        }
+    }
+
+    public void addStr(const string<24> k, const string<24> v) {
+        this.key(k);
+        this.putByte('"');
+        this.putRaw(v);
+        this.putByte('"');
+    }
+
+    // Fixed 2-decimal float via scale-to-int (rounded). Telemetry needs 1-2 dp.
+    public void addFloat2(const string<24> k, f32 v) {
+        this.key(k);
+        f32 x <- v;
+        bool neg <- x < 0.0;
+        if (neg = true) {
+            this.putByte('-');
+            x <- 0.0 - x;
+        }
+        u32 scaled <- (u32)(x * 100.0 + 0.5);
+        u32 ip <- scaled / 100;
+        u32 fp <- scaled % 100;
+        this.putUintRaw(ip);
+        this.putByte('.');
+        bool padZero <- fp < 10;
+        if (padZero = true) {
+            this.putByte('0');
+        }
+        this.putUintRaw(fp);
+    }
+
+    public void end() {
+        this.putByte('}');
+    }
+
+    public u8 at(u32 i) {
+        return this.buf[i];
+    }
+
+    public u32 len() {
+        return this.cursor;
+    }
+
+    public bool overflowed() {
+        return this.full;
+    }
+}
