@@ -17,6 +17,9 @@ struct CotSettleResult {
     float tauSeconds;       // valid when measurementReady (63% time constant)
     float settleSeconds;    // valid when measurementReady (time to slope-flat)
     float stepC;            // signed COT change (valid when measurementReady)
+    float cotSlopeCperS;    // per-step COT slope (telemetry/replay; 0 on seed sample)
+    float boostSlopePsiPerS;// per-step boost slope (telemetry/replay; 0 on seed sample)
+    float settleTimerS;     // accumulated flat time toward the settled flag
 };
 
 // Max samples buffered during one measurement. ~512 @ ~10 Hz covers ~51 s.

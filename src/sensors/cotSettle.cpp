@@ -61,6 +61,9 @@ CotSettleResult cotSettleStep(CotSettleState &s, const CotSettleConfig &cfg,
         s.settledTimer = 0.0f;
     }
     r.settled = (s.settledTimer >= cfg.settledSeconds);
+    r.cotSlopeCperS = cotSlope;
+    r.boostSlopePsiPerS = boostSlope;
+    r.settleTimerS = s.settledTimer;
 
     // tau measurement event machine (boost-settle is the fast reference).
     if (!s.armed) {

@@ -85,6 +85,24 @@ void test_small_step_rejected(void) {
     TEST_ASSERT_FALSE(any);
 }
 
+// Per-step slopes and the settle timer are surfaced for telemetry/replay.
+void test_surfaced_slopes_and_timer(void) {
+    CotSettleConfig cfg = makeConfig();
+    CotSettleState st; cotSettleInit(st);
+    cotSettleStep(st, cfg, 50.0f, 5.0f, 0.1f);  // seed: no slope yet
+    // One moving sample: dCOT=+1 C over 0.1 s => 10 C/s; dBoost=+0.5 psi => 5 psi/s.
+    CotSettleResult moving = cotSettleStep(st, cfg, 51.0f, 5.5f, 0.1f);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 10.0f, moving.cotSlopeCperS);
+    TEST_ASSERT_FLOAT_WITHIN(0.01f, 5.0f, moving.boostSlopePsiPerS);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, moving.settleTimerS);  // not flat -> reset
+    // Hold flat: both slopes ~0, timer accumulates dt each step.
+    CotSettleResult flat = {false, false, 0, 0, 0};
+    for (int k = 0; k < 3; k++) flat = cotSettleStep(st, cfg, 51.0f, 5.5f, 0.1f);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, flat.cotSlopeCperS);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, flat.boostSlopePsiPerS);
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.3f, flat.settleTimerS);  // 3 * 0.1 s
+}
+
 int main(int, char **) {
     UNITY_BEGIN();
     RUN_TEST(test_settled_flag_after_sustained_flat);
@@ -92,5 +110,6 @@ int main(int, char **) {
     RUN_TEST(test_tau_extraction_first_order);
     RUN_TEST(test_no_measurement_when_boost_moving);
     RUN_TEST(test_small_step_rejected);
+    RUN_TEST(test_surfaced_slopes_and_timer);
     return UNITY_END();
 }
