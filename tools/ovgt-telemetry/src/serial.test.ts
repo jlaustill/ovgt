@@ -1,0 +1,58 @@
+import { EventEmitter } from "node:events";
+import { PassThrough } from "node:stream";
+import { expect, test, vi } from "vitest";
+import { pickTeensyPort, SerialLink, type SerialStream } from "./serial";
+
+test("pickTeensyPort finds the 16c0 device, case-insensitive", () => {
+  const ports = [
+    { path: "/dev/ttyS0", vendorId: undefined },
+    { path: "/dev/ttyACM0", vendorId: "16C0", productId: "0483" },
+  ];
+  expect(pickTeensyPort(ports)).toBe("/dev/ttyACM0");
+  expect(pickTeensyPort([{ path: "/dev/ttyS0" }])).toBeUndefined();
+});
+
+// Fake serial stream: inner PassThrough feeds `pipe`; writes are recorded.
+class FakeSerial extends EventEmitter implements SerialStream {
+  readable = new PassThrough();
+  written: string[] = [];
+  pipe<T extends NodeJS.WritableStream>(dest: T): T {
+    return this.readable.pipe(dest);
+  }
+  write(data: string): boolean {
+    this.written.push(data);
+    return true;
+  }
+  inject(data: string): void {
+    this.readable.write(data);
+  }
+}
+
+test("emits parsed lines split on newline", async () => {
+  const fake = new FakeSerial();
+  const lines: string[] = [];
+  const link = new SerialLink({ open: () => fake, onLine: (l) => lines.push(l) });
+  link.start();
+  fake.inject('{"type":"t"}\nSetup ');
+  fake.inject("complete\n");
+  await new Promise((r) => setTimeout(r, 10));
+  expect(lines).toEqual(['{"type":"t"}', "Setup complete"]);
+});
+
+test("send() appends a newline once", () => {
+  const fake = new FakeSerial();
+  const link = new SerialLink({ open: () => fake, onLine: () => {} });
+  link.start();
+  link.send("bpr 1.05");
+  link.send("auto\n");
+  expect(fake.written).toEqual(["bpr 1.05\n", "auto\n"]);
+});
+
+test("reconnects after an unexpected close", async () => {
+  const open = vi.fn(() => new FakeSerial());
+  const link = new SerialLink({ open, onLine: () => {}, reconnectMs: 5 });
+  link.start();
+  (open.mock.results[0]!.value as FakeSerial).emit("close");
+  await new Promise((r) => setTimeout(r, 20));
+  expect(open).toHaveBeenCalledTimes(2);
+});
