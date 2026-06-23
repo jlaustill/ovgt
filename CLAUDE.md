@@ -3,6 +3,15 @@
 Variable-geometry turbo controller. Teensy 4.1 / PlatformIO / Arduino, migrating
 C++ → C-Next. (C-Next syntax lives in the global ~/.claude/CLAUDE.md.)
 
+## 🌟 North Star (read first for any CE / sensor / control work)
+The objective of this whole project is to **control the VGT vanes to maximize
+compressor efficiency (CE) at all times.** CE is the project's objective function;
+making it *accurate enough to control on* (precision **and** time-alignment, which
+trade off — lag dominates) is the critical path. **Read `docs/north-star.md` before
+planning anything CE-, sensor-, or control-related** and judge each step by: *does
+this make CE more accurate, or let us act on it?* Phased plan:
+`docs/plans/2026-06-22-realtime-ce-accuracy-epic.md`.
+
 ## Git workflow
 - Solo private repo: commit directly to `main`, **no feature branches**, frequent
   small commits. Push only when asked.
