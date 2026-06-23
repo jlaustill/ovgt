@@ -26,7 +26,10 @@ static CotSettleConfig cotSettleCfg = {
     0.5f,   // boostSlopeFlatPsiPerS
     2.0f,   // settledSeconds
     3.0f,   // minStepC
-    512     // maxBufferSamples
+    512,    // maxBufferSamples
+    0.5f    // slopeWindowSeconds (windowed flatness for the settled flag; rejects
+            // K-type per-sample noise that otherwise pins the flag off — see
+            // test_settled_flag_with_realistic_cot_noise)
 };
 static bool ceSettled = false;
 static elapsedMicros cotSampleDt;

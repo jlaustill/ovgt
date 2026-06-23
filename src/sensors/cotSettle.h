@@ -9,6 +9,8 @@ struct CotSettleConfig {
     float    settledSeconds;        // sustained-flat duration for the CE settled flag
     float    minStepC;              // min |COT change| to accept a tau measurement
     uint16_t maxBufferSamples;      // cap on samples buffered during one measurement
+    float    slopeWindowSeconds;    // trailing window for the SETTLED-flag flatness
+                                    // slope (0 => adjacent-sample, the legacy behavior)
 };
 
 struct CotSettleResult {
@@ -25,6 +27,10 @@ struct CotSettleResult {
 // Max samples buffered during one measurement. ~512 @ ~10 Hz covers ~51 s.
 static const uint16_t COT_SETTLE_BUFFER = 512;
 
+// Ring buffer for the settled-flag's windowed flatness slope. ~16 @ ~10 Hz covers
+// ~1.6 s, comfortably more than any sane slopeWindowSeconds.
+static const uint8_t COT_SLOPE_WINDOW = 16;
+
 struct CotSettleState {
     bool     initialized;
     float    lastCotC;
@@ -38,6 +44,14 @@ struct CotSettleState {
     uint16_t count;          // samples buffered this measurement
     float    bufElapsed[COT_SETTLE_BUFFER];
     float    bufCot[COT_SETTLE_BUFFER];
+    // Trailing window of recent samples for the settled-flag flatness slope. Keeps
+    // single-sample sensor noise from resetting the settled timer (the tau event
+    // machine still uses the raw adjacent-sample slope, below).
+    uint8_t  slopeCount;     // valid entries (saturates at COT_SLOPE_WINDOW)
+    uint8_t  slopeHead;      // next write index (ring)
+    float    slopeDt[COT_SLOPE_WINDOW];
+    float    slopeCot[COT_SLOPE_WINDOW];
+    float    slopeBoost[COT_SLOPE_WINDOW];
 };
 
 void cotSettleInit(CotSettleState &state);

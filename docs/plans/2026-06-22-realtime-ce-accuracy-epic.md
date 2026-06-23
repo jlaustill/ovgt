@@ -176,12 +176,12 @@ Phase 1 delivers value on current hardware and is independent of the RIFE probe.
 2 reuses Phase 1's alignment machinery with a smaller COT τ. Phase 3 is gated on
 aligned CE meeting the acceptance bar **and** an airflow estimate.
 
-## Decisions to confirm (need user input)
-1. **Alignment target:** sensor-lag-only (delay-shift) vs sensor+physics (model)? Scopes Phase 0/1 methodology.
-2. **True objective:** compressor CE, or engine brake-thermal-efficiency (CE is its dominant lever but the optima differ slightly)?
-3. **"Semi-accurate" tolerance** for Phase 1 (aligned transient CE within X % of trusted CE) and the CE-noise ceiling for despike-only.
-4. **Faster-COT path:** exposed K-type (drop-in, MAX31856-floored) vs NTC-on-ADS (faster cadence, needs lift-pump to vacate ch3)?
-5. **`ce_pct` gating:** blank when `!settled` in firmware, or keep advisory and filter host-side?
+## Decisions
+1. **Alignment target** (sensor-lag-only vs sensor+physics): **DECIDE AFTER PHASE 0** (2026-06-23) — measure first, then choose once the physics phase is quantified against sensor lag.
+2. **True objective** (compressor CE vs engine BTE): **DEFERRED TO PHASE 3** (2026-06-23) — CE is the near-term signal regardless.
+3. **Faster-COT path:** **BOTH — co-locate exposed K-type *and* NTC-on-ADS2-ch3 with the production K-type and characterize all three** (2026-06-23); the co-located rig also serves as Phase 1's transient ground truth.
+4. *(open)* **"Semi-accurate" tolerance** for Phase 1 (aligned transient CE within X % of trusted CE) + the CE-noise ceiling for despike-only.
+5. *(open)* **`ce_pct` gating:** blank when `!settled` in firmware, or keep advisory and filter host-side?
 
 ## Risks
 - COT not cleanly first-order → a single matched-τ low-pass under/over-corrects (consider 2-pole). Distinguish sensor τ from gas dynamics (cooldowns measure gas, not the probe).

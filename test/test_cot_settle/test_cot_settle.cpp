@@ -12,6 +12,7 @@ static CotSettleConfig makeConfig(void) {
     cfg.settledSeconds = 2.0f;
     cfg.minStepC = 3.0f;
     cfg.maxBufferSamples = COT_SETTLE_BUFFER;
+    cfg.slopeWindowSeconds = 0.5f;
     return cfg;
 }
 
@@ -23,6 +24,27 @@ void test_settled_flag_after_sustained_flat(void) {
     CotSettleResult r = {false, false, 0, 0, 0};
     for (int k = 0; k < 25; k++) r = cotSettleStep(st, cfg, 50.0f, 5.0f, 0.1f);
     TEST_ASSERT_TRUE(r.settled);  // 25*0.1 = 2.5s >= 2.0s
+}
+
+// REGRESSION (settled-flag never clears, 0/13394 on drive-2): a steady engine with
+// realistic K-type per-sample noise (~+/-0.08 C jitter at ~10 Hz => adjacent-sample
+// slope swings +/-0.8..1.6 C/s, far above the 0.3 C/s flat threshold) must STILL be
+// recognized as settled. Adjacent-sample flatness never settles here (the bug); a
+// windowed-slope flatness decision does.
+void test_settled_flag_with_realistic_cot_noise(void) {
+    CotSettleConfig cfg = makeConfig();
+    CotSettleState st; cotSettleInit(st);
+    // Deterministic zero-mean jitter sequence, |adjacent slope| up to ~1.6 C/s.
+    const float jitter[] = {0.06f, -0.04f, 0.08f, -0.06f, 0.02f, -0.08f, 0.04f, -0.02f};
+    const int n = sizeof(jitter) / sizeof(jitter[0]);
+    cotSettleStep(st, cfg, 50.0f, 5.0f, 0.1f);  // seed
+    bool everSettled = false;
+    for (int k = 0; k < 60; k++) {              // 6 s of steady-but-noisy idle
+        float cot = 50.0f + jitter[k % n];
+        CotSettleResult r = cotSettleStep(st, cfg, cot, 5.0f, 0.1f);
+        everSettled = everSettled || r.settled;
+    }
+    TEST_ASSERT_TRUE(everSettled);
 }
 
 // A COT spike after being settled clears the flag.
@@ -95,17 +117,21 @@ void test_surfaced_slopes_and_timer(void) {
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 10.0f, moving.cotSlopeCperS);
     TEST_ASSERT_FLOAT_WITHIN(0.01f, 5.0f, moving.boostSlopePsiPerS);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, moving.settleTimerS);  // not flat -> reset
-    // Hold flat: both slopes ~0, timer accumulates dt each step.
+    // Hold flat. Surfaced slopes are the raw adjacent values (~0 once holding). The
+    // settle timer uses the WINDOWED flatness, so after the +1 C step it only begins
+    // accumulating once that step rolls out of the 0.5 s slope window (~6 samples);
+    // hold long enough and the timer is clearly accumulating.
     CotSettleResult flat = {false, false, 0, 0, 0};
-    for (int k = 0; k < 3; k++) flat = cotSettleStep(st, cfg, 51.0f, 5.5f, 0.1f);
+    for (int k = 0; k < 12; k++) flat = cotSettleStep(st, cfg, 51.0f, 5.5f, 0.1f);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, flat.cotSlopeCperS);
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.0f, flat.boostSlopePsiPerS);
-    TEST_ASSERT_FLOAT_WITHIN(0.001f, 0.3f, flat.settleTimerS);  // 3 * 0.1 s
+    TEST_ASSERT_TRUE(flat.settleTimerS > 0.3f);  // window cleared the step, timer running
 }
 
 int main(int, char **) {
     UNITY_BEGIN();
     RUN_TEST(test_settled_flag_after_sustained_flat);
+    RUN_TEST(test_settled_flag_with_realistic_cot_noise);
     RUN_TEST(test_settled_resets_on_spike);
     RUN_TEST(test_tau_extraction_first_order);
     RUN_TEST(test_no_measurement_when_boost_moving);
