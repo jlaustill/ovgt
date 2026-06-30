@@ -20,7 +20,7 @@ static const float HPA_TO_PSI = 0.0145038f;
 // kp=20/ki=20 glides and locks BPR=1.00 at sustained cruise).
 // No boost ceiling: targets BPR only (deliberate — see design doc).
 static BoostConfig boostConfig = {
-    1.0f,                // bprTarget (runtime-tunable: `bpr <value>`)
+    1.5f,                // bprTarget (runtime-tunable: `bpr <value>`)
     1.5f,                // boostSpoolPsi (fall back to spool below this)
     3.0f,                // boostPiPsi (engage PI above this; hysteresis dead band)
     25,                  // spoolPercent (fixed vane position while spooling)

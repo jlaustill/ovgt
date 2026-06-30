@@ -9,7 +9,7 @@ struct BoostInputs {
 };
 
 struct BoostConfig {
-    float   bprTarget;          // 1.0
+    float   bprTarget;          // default 1.5
     float   boostSpoolPsi;      // fall back to spool BELOW this (hysteresis low)
     float   boostPiPsi;         // engage PI ABOVE this (hysteresis high)
     uint8_t spoolPercent;       // fixed vane position while spooling
