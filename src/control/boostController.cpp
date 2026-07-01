@@ -23,12 +23,14 @@ static BoostConfig boostConfig = {
     1.5f,                // bprTarget (runtime-tunable: `bpr <value>`)
     1.5f,                // boostSpoolPsi (fall back to spool below this)
     3.0f,                // boostPiPsi (engage PI above this; hysteresis dead band)
-    25,                  // spoolPercent (fixed vane position while spooling)
+    22,                  // spoolPercent (fixed vane position while spooling)
     VANE_CLOSED_PERCENT, // vaneClosedPercent (max drive / boost)
     VANE_OPEN_PERCENT,   // vaneOpenPercent (relief / mechanical open limit)
     20.0f,               // kp (runtime-tunable: `kp <value>`)
     20.0f,               // ki (runtime-tunable: `ki <value>`)
-    6.0f                 // spoolProtectBoostPsi (below this boost, don't open past spool)
+    6.0f,                // spoolProtectBoostPsi (below this boost, don't open past spool)
+    55                   // vaneOpenCapPercent (controller may not open past this;
+                         // settled operation stays <=50%, so this clips only the kick)
 };
 static BoostState boostState = {0.0f, true, false};
 static uint32_t lastUpdateMs = 0;
