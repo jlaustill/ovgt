@@ -43,15 +43,17 @@ not part of this design.
 
 ## Hardware
 
-Built on a spare Raspberry Pi 5 plus three HATs; NVMe drives are already on hand.
+Built on a spare Raspberry Pi 5; NVMe drives are already on hand. The power path is
+a discrete two-stage chain (see Power & Reliability) rather than a single power HAT.
 
 | Part | Choice | Notes |
 |------|--------|-------|
 | Compute | **Raspberry Pi 5 (8 GB)** | Runs MongoDB (arm64), built-in WiFi. On hand. |
 | CAN interface | **CAN FD HAT (MCP2518FD)** | Taps CANH/CANL, **listen-only**, 250 kbps, appears as SocketCAN `can0`. |
 | Storage | **NVMe HAT + 2–4 TB NVMe** | On hand. Keep-forever headroom (see capacity). NVMe, never SD — write endurance. |
-| Time | **RTC HAT** (or UPS HAT with integrated RTC) | Real wall-clock timestamps with no internet on the road. |
-| Power / shutdown | **Wide-input (9–36 V) automotive DC-DC + ignition-sense + supercap/UPS** | See Power & Reliability — the make-or-break subsystem. |
+| Power — Stage 1 | **Mean Well wide-input DC-DC** (e.g. DDR-30 series, 9–36 V in, 5 V/6 A out) + input TVS | Converts dirty truck 12 V to clean, in-spec 5 V; wide input so a load dump lands inside range. Certified brick replaces a DIY surge-stopper. |
+| Power — Stage 2 | **SCap UPS Board** (supercapacitor, 5 V-in/5 V-out pass-through + hold-up, power-loss GPIO) | Rides out key-off (15–110 s hold-up) so the Pi flushes + unmounts cleanly. Its power-loss pin is the shutdown trigger. |
+| Time | Handled by the **RTC HAT** (or an RTC on the chosen stack) | Real wall-clock timestamps with no internet on the road. |
 
 The bus is 250 kbps — slow in CAN terms — so a Pi with SocketCAN ingests it without
 dropping frames. A dedicated MCU capture front-end was considered and rejected as
@@ -122,29 +124,54 @@ This is a first-class requirement, not a footnote — it is what separates "logs
 years" from "corrupt database in a month." Continuous logging in a truck faces:
 
 - **Cranking dips:** 12 V rails sag to 6–9 V during engine start.
-- **Load dumps / transients:** brief high-voltage spikes.
-- **Abrupt key-off mid-write:** the corruption killer if unmanaged.
+- **Load dumps / transients:** brief high-voltage spikes (a 12 V system can reach
+  ~35 V+ on a load dump).
+- **Abrupt key-off mid-write:** the corruption killer if unmanaged. A DC-DC
+  converter alone cannot solve this — it is a pass-through with no energy reservoir,
+  so input loss propagates to output in milliseconds. Un-flushed MongoDB writes and,
+  worse, a consumer NVMe's in-flight flash-translation-layer update can corrupt on a
+  hard cut ("won't mount," not just one bad record). This is why Stage 2 exists.
 
-Mitigations:
+**Power path — discrete two stages** (chosen over a single power HAT because no HAT
+delivers Pi 5's ~5 A *and* real automotive transient tolerance *and* seconds of
+hold-up):
 
-1. **Wide-input automotive DC-DC (9–36 V)** rated for cranking dips and load-dump
-   transients — not a naive buck converter.
-2. **Ignition-sense → graceful shutdown:** an ignition-on signal wired to a Pi GPIO.
-   On key-off, the Pi detects ignition-low, flushes and cleanly shuts down MongoDB,
-   unmounts the NVMe, and powers down — riding the gap on the supercap/UPS.
-3. **NVMe, never SD:** SD cards fail quickly under continuous write; NVMe has the
-   endurance and survives power events better.
-4. **MongoDB journaling** as the durability safety net beneath the clean-shutdown
+1. **Stage 1 — Mean Well wide-input DC-DC + input TVS.** Converts the dirty truck
+   12 V to a clean, in-spec 5 V. A wide-input model (e.g. DDR-30, 9–36 V) keeps a
+   load dump *inside* its input range instead of over-volting it; the TVS clamps the
+   fast microsecond transients its input filter won't fully absorb. This shields the
+   downstream Stage 2 board from all automotive nastiness.
+2. **Stage 2 — SCap UPS Board (supercapacitor).** Fed the clean 5 V from Stage 1, it
+   runs in 5 V-in/5 V-out pass-through while charging its supercaps. On key-off the
+   Stage 1 output collapses; the SCap board detects the loss, asserts its power-loss
+   GPIO, and rides the Pi down on the supercaps (15–110 s hold-up) — far more than
+   the ~15–30 s needed. Supercaps (not Li-ion) mean no battery to degrade and a wide
+   temperature tolerance.
+3. **Graceful shutdown.** The SCap power-loss pin drives the Pi's built-in
+   `gpio-shutdown` device-tree overlay: GPIO low → clean Linux shutdown → MongoDB
+   flush → NVMe unmount, all completed within the supercap hold-up window. No custom
+   ignition-sense circuit required; wiring to switched (ignition) 12 V makes key-off
+   the shutdown trigger directly.
+4. **NVMe, never SD:** SD cards fail quickly under continuous write; NVMe has the
+   endurance and, behind the hold-up, is unmounted cleanly.
+5. **MongoDB journaling** as the durability safety net beneath the clean-shutdown
    path.
-5. **RTC** so timestamps are correct when there is no WiFi/NTP on the road.
+6. **RTC** so timestamps are correct when there is no WiFi/NTP on the road.
+7. **Cab install** (behind a panel / under a seat — not the dash or engine bay) keeps
+   ambient within the supercaps' comfortable range, making the module effectively
+   maintenance-free for years.
 
 ## Open Items (validate during build)
 
 1. **Measure the real bus frame rate on the truck** to firm up the 0.5–1.5 GB/day
    storage estimate — the Pi can count frames itself once it is on the bus.
-2. **Select the specific UPS HAT** that bundles RTC + ignition-sense cleanly (avoids
-   stacking separate HATs).
-3. **Confirm the MCP2518FD HAT's listen-only configuration** under SocketCAN.
+2. **Confirm the exact Mean Well model** — verify 5 V/≥6 A at 12 V input, wide-input
+   range covers the truck's worst-case load dump, and physical mounting.
+3. **Verify the SCap UPS Board** — that it truly passes 5 V through (not double-
+   convert) under load, its continuous current/thermal behavior, and its supercap
+   temperature rating against the cab install location.
+4. **Confirm the MCP2518FD HAT's listen-only configuration** under SocketCAN, and
+   that it coexists on the 40-pin header with any RTC/other GPIO users.
 
 ## Future Iterations (out of scope here, noted for continuity)
 
