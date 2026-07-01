@@ -71,6 +71,10 @@ void ovgt::handleDebug() {
     Json_addFloat2("tip_psi", appData.turbineInputPressureHpa * 0.0145038f);
     Json_addFloat2("bpr", bpr);
     Json_addFloat2("bpr_target", BoostController::getBprTarget());
+    // Controller-internal state, to diagnose low-load boost "stick": which region
+    // the loop is in (spool vs PI) and the integral windup that precedes the snap.
+    Json_addStr("boost_region", BoostController::getInPiRegion() ? "pi" : "spool");
+    Json_addFloat2("boost_integ", BoostController::getIntegralTerm());
     Json_addFloat2("cit_c", appData.compressorInputTempC);
     Json_addFloat2("cot_c", appData.compressorOutputTempC);
     Json_addInt("tit_c", appData.turbineInletTempC);

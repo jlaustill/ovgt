@@ -103,6 +103,8 @@ void BoostController::setBprTarget(float value) { boostConfig.bprTarget = value;
 void BoostController::setKp(float value) { boostConfig.kp = value; }
 void BoostController::setKi(float value) { boostConfig.ki = value; }
 float BoostController::getBprTarget() { return boostConfig.bprTarget; }
+bool BoostController::getInPiRegion() { return boostState.inPiRegion; }
+float BoostController::getIntegralTerm() { return boostState.integralTerm; }
 
 void BoostController::printParams() {
 #if BOOST_USE_BPR

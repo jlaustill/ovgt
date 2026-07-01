@@ -12,6 +12,11 @@ class BoostController {
         static void setKp(float value);
         static void setKi(float value);
         static float getBprTarget();
+        // Diagnostic accessors: expose the BPR controller's hidden internal state
+        // for telemetry so we can see WHY boost sticks at low load (region the
+        // controller is in, and the integral windup that precedes the snap).
+        static bool getInPiRegion();
+        static float getIntegralTerm();
         static void printParams();
 };
 

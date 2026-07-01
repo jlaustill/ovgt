@@ -9,6 +9,8 @@ export interface TelemetrySample {
   tip_psi: number;
   bpr: number;
   bpr_target: number;
+  boost_region: "spool" | "pi";
+  boost_integ: number;
   cit_c: number;
   cot_c: number;
   tit_c: number;

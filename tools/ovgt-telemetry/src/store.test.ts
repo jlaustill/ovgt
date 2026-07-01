@@ -9,6 +9,7 @@ const dbName = `ovgt_test_${Date.now()}`;
 const sample: TelemetrySample = {
   type: "t", t_ms: 100, mode: "auto", cop_hpa: 871, cip_hpa: 875,
   boost_psi: 0, br: 1, tip_psi: 0, bpr: 0, bpr_target: 1,
+  boost_region: "spool", boost_integ: 0,
   cit_c: 20.3, cot_c: 20.9, tit_c: 20, ce_pct: -1, ce_settled: false,
   dem_pct: 25, pos_pct: 27, brake: false,
 };
