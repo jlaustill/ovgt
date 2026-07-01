@@ -78,6 +78,7 @@ void ovgt::handleDebug() {
     Json_addFloat2("cit_c", appData.compressorInputTempC);
     Json_addFloat2("cot_c", appData.compressorOutputTempC);
     Json_addInt("tit_c", appData.turbineInletTempC);
+    Json_addFloat2("mcu_c", tempmonGetTemp());  // Teensy 4.1 on-die temperature
     Json_addFloat2("ce_pct", efficiency >= 0.0f ? efficiency * 100.0f : -1.0f);
     Json_addBool("ce_settled", ceSettled);
     Json_addUint("dem_pct", manualMode ? manualPwm : appData.actuatorDemandedPosition);

@@ -14,6 +14,7 @@ export interface TelemetrySample {
   cit_c: number;
   cot_c: number;
   tit_c: number;
+  mcu_c: number;
   ce_pct: number;
   ce_settled: boolean;
   dem_pct: number;
