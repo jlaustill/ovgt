@@ -56,3 +56,29 @@ test("reconnects after an unexpected close", async () => {
   await new Promise((r) => setTimeout(r, 20));
   expect(open).toHaveBeenCalledTimes(2);
 });
+
+// USB re-enumeration (vibration drop) makes open() throw ENOENT for a moment;
+// the link must keep retrying instead of dying on the error.
+test("retries when open() throws (device briefly absent)", async () => {
+  let calls = 0;
+  const open = vi.fn(() => {
+    calls++;
+    if (calls === 1) throw new Error("No such file or directory, cannot open /dev/ttyACM0");
+    return new FakeSerial();
+  });
+  const link = new SerialLink({ open, onLine: () => {}, reconnectMs: 5 });
+  link.start();
+  await new Promise((r) => setTimeout(r, 20));
+  expect(open).toHaveBeenCalledTimes(2);
+});
+
+// A mid-stream disconnect can surface as an "error" event (not "close"); it must
+// still trigger a reconnect.
+test("reconnects after an error event", async () => {
+  const open = vi.fn(() => new FakeSerial());
+  const link = new SerialLink({ open, onLine: () => {}, reconnectMs: 5 });
+  link.start();
+  (open.mock.results[0]!.value as FakeSerial).emit("error", new Error("disconnected"));
+  await new Promise((r) => setTimeout(r, 20));
+  expect(open).toHaveBeenCalledTimes(2);
+});

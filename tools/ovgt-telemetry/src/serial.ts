@@ -31,6 +31,7 @@ export interface SerialLinkOptions {
 export class SerialLink {
   private port?: SerialStream;
   private stopped = false;
+  private reconnectTimer?: ReturnType<typeof setTimeout>;
 
   constructor(private readonly opts: SerialLinkOptions) {}
 
@@ -40,18 +41,38 @@ export class SerialLink {
   }
 
   private connect(): void {
-    const port = this.opts.open();
+    let port: SerialStream;
+    try {
+      port = this.opts.open();
+    } catch (err) {
+      // Device briefly absent — e.g. the Teensy's USB re-enumerating after a
+      // vibration-induced disconnect. Report and keep retrying, don't die.
+      this.opts.onStatus?.("error", (err as Error).message);
+      this.scheduleReconnect();
+      return;
+    }
     this.port = port;
     const parser = port.pipe(new ReadlineParser({ delimiter: "\n" }));
     parser.on("data", (line: string) => this.opts.onLine(line));
-    port.on("error", (err) => this.opts.onStatus?.("error", err.message));
+    // A disconnect can surface as either "error" or "close" (or both); either
+    // must schedule a reconnect. scheduleReconnect() de-dupes.
+    port.on("error", (err) => {
+      this.opts.onStatus?.("error", err.message);
+      this.scheduleReconnect();
+    });
     port.on("close", () => {
       this.opts.onStatus?.("closed");
-      if (!this.stopped) {
-        setTimeout(() => this.connect(), this.opts.reconnectMs ?? 2000);
-      }
+      this.scheduleReconnect();
     });
     this.opts.onStatus?.("open");
+  }
+
+  private scheduleReconnect(): void {
+    if (this.stopped || this.reconnectTimer) return;
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = undefined;
+      this.connect();
+    }, this.opts.reconnectMs ?? 2000);
   }
 
   send(command: string): void {
@@ -60,5 +81,9 @@ export class SerialLink {
 
   stop(): void {
     this.stopped = true;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = undefined;
+    }
   }
 }
