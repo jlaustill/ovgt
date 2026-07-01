@@ -58,5 +58,17 @@ uint8_t boostBprStep(const BoostInputs &in, const BoostConfig &cfg,
     }
     float closure = cfg.kp * error + state.integralTerm;
     float vane = (float)cfg.vaneOpenPercent - closure;
+
+    // 5. Spool protection. During spool-up drive pressure leads boost, so BPR
+    //    (= drive/boost) reads transiently huge and the proportional term above
+    //    would fling the vane wide open, dumping the drive pressure the turbo just
+    //    built and stalling the spool (the low-load boost "stick"). Below
+    //    spoolProtectBoostPsi the PI may still CLOSE the vane (add drive) but may
+    //    not OPEN it past the spool position. The clamp releases once boost is high
+    //    enough for BPR to be a trustworthy control signal (BPR is back near target
+    //    by then, so the handoff is smooth).
+    if (in.boostGaugePsi < cfg.spoolProtectBoostPsi && vane > (float)cfg.spoolPercent) {
+        vane = (float)cfg.spoolPercent;
+    }
     return clampVane(vane, cfg.vaneClosedPercent, cfg.vaneOpenPercent);
 }

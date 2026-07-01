@@ -16,6 +16,7 @@ static BoostConfig makeConfig(void) {
     cfg.vaneOpenPercent = 88;
     cfg.kp = 20.0f;
     cfg.ki = 20.0f;
+    cfg.spoolProtectBoostPsi = 6.0f;
     return cfg;
 }
 
@@ -98,6 +99,41 @@ void test_bumpless_handoff_from_spool(void) {
     TEST_ASSERT_TRUE(vaneHandoff < cfg.vaneOpenPercent);
 }
 
+// Regression (boost "stick"): at the spool->PI handoff, drive pressure leads
+// boost so BPR is transiently huge. The PI proportional term used to fling the
+// vane wide open (25 -> ~76), collapsing drive and stalling the spool. Below
+// spoolProtectBoostPsi the vane must NOT open past the spool position.
+void test_spool_protect_prevents_handoff_open_kick(void) {
+    BoostConfig cfg = makeConfig();
+    BoostState st = {0.0f, false, false};
+
+    // Spool: vane held closed at 25 while drive races ahead of boost.
+    BoostInputs spool;
+    spool.boostGaugePsi = 1.0f;
+    spool.tipGaugePsi = 12.0f;
+    boostBprStep(spool, cfg, st, 0.01f);
+
+    // Handoff: boost just crosses into PI (3.3 psi, below spoolProtectBoostPsi)
+    // while drive still leads (tip 11.6 -> bpr ~3.5, far above target).
+    BoostInputs handoff;
+    handoff.boostGaugePsi = 3.3f;
+    handoff.tipGaugePsi = 11.6f;
+    uint8_t vane = boostBprStep(handoff, cfg, st, 0.01f);
+    TEST_ASSERT_LESS_OR_EQUAL_UINT8(cfg.spoolPercent, vane);  // no open-kick
+}
+
+// Above spoolProtectBoostPsi the clamp releases: normal PI may open past spool
+// (e.g. sustained cruise at a lower BPR target needs the vane open past 25).
+void test_spool_protect_releases_above_threshold(void) {
+    BoostConfig cfg = makeConfig();
+    BoostInputs in;
+    in.boostGaugePsi = 20.0f;      // well above spoolProtectBoostPsi
+    in.tipGaugePsi = 30.0f;        // bpr = 1.5 > target -> wants to open
+    BoostState st = {0.0f, false, true};
+    uint8_t vane = boostBprStep(in, cfg, st, 0.01f);
+    TEST_ASSERT_EQUAL_UINT8(88, vane);  // free to open, clamp not engaged
+}
+
 // Persistent large deficit: integral winds up to full travel, vanes fully closed.
 void test_integral_antiwindup_clamps_closed(void) {
     BoostConfig cfg = makeConfig();
@@ -167,6 +203,8 @@ int main(int, char **) {
     RUN_TEST(test_bpr_above_target_opens);
     RUN_TEST(test_bigger_bpr_deficit_closes_more);
     RUN_TEST(test_bumpless_handoff_from_spool);
+    RUN_TEST(test_spool_protect_prevents_handoff_open_kick);
+    RUN_TEST(test_spool_protect_releases_above_threshold);
     RUN_TEST(test_integral_antiwindup_clamps_closed);
     RUN_TEST(test_hysteresis_stays_pi_in_band);
     RUN_TEST(test_hysteresis_drops_to_spool_below_low);

@@ -17,6 +17,8 @@ struct BoostConfig {
     uint8_t vaneOpenPercent;    // from VaneConfig.h
     float   kp;
     float   ki;
+    float   spoolProtectBoostPsi; // below this boost, PI may not open the vane past
+                                  // the spool position (kills the handoff open-kick)
 };
 
 struct BoostState {

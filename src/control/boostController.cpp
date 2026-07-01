@@ -27,7 +27,8 @@ static BoostConfig boostConfig = {
     VANE_CLOSED_PERCENT, // vaneClosedPercent (max drive / boost)
     VANE_OPEN_PERCENT,   // vaneOpenPercent (relief / mechanical open limit)
     20.0f,               // kp (runtime-tunable: `kp <value>`)
-    20.0f                // ki (runtime-tunable: `ki <value>`)
+    20.0f,               // ki (runtime-tunable: `ki <value>`)
+    6.0f                 // spoolProtectBoostPsi (below this boost, don't open past spool)
 };
 static BoostState boostState = {0.0f, true, false};
 static uint32_t lastUpdateMs = 0;
