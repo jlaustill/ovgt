@@ -102,9 +102,9 @@ void BoostController::update() {
 #endif
 }
 
-void BoostController::setBprTarget(float value) { boostConfig.bprTarget = value; }
-void BoostController::setKp(float value) { boostConfig.kp = value; }
-void BoostController::setKi(float value) { boostConfig.ki = value; }
+void BoostController::setBprTarget(float value) { boostConfig.bprTarget = clampBprTarget(value); }
+void BoostController::setKp(float value) { boostConfig.kp = clampGain(value); }
+void BoostController::setKi(float value) { boostConfig.ki = clampGain(value); }
 float BoostController::getBprTarget() { return boostConfig.bprTarget; }
 bool BoostController::getInPiRegion() { return boostState.inPiRegion; }
 float BoostController::getIntegralTerm() { return boostState.integralTerm; }

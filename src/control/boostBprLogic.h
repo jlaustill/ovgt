@@ -19,6 +19,9 @@ struct BoostConfig {
     float   ki;
     float   spoolProtectBoostPsi; // below this boost, PI may not open the vane past
                                   // the spool position (kills the handoff open-kick)
+    uint8_t vaneOpenCapPercent;   // controller open-authority cap (< vaneOpenPercent):
+                                  // the PI may never open the vane past this, blunting
+                                  // the transient BPR proportional slam
 };
 
 struct BoostState {
@@ -36,5 +39,12 @@ struct BoostState {
 // Mutates state.
 uint8_t boostBprStep(const BoostInputs &in, const BoostConfig &cfg,
                      BoostState &state, float dtSeconds);
+
+// Clamp runtime-tuning inputs to sane ranges so a stray/garbage serial command
+// (e.g. a key mashed by something dropped on the keyboard) can never load a
+// dangerous value into the live controller. A negative bprTarget or gain would
+// invert the control and fling the vane; these floors/ceilings prevent that.
+float clampBprTarget(float value);  // clamped to [1.0, 2.5]
+float clampGain(float value);       // kp/ki, clamped to [0.0, 200.0]
 
 #endif
