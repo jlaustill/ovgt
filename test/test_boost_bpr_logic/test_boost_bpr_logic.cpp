@@ -149,6 +149,19 @@ void test_vane_open_cap_limits_slam(void) {
     TEST_ASSERT_LESS_OR_EQUAL_UINT8(cfg.vaneOpenCapPercent, vane);
 }
 
+// The PI demand must not slam fully closed: it is floored at the spool position
+// (same spoolPercent variable), so even a limit cycle only swings spool<->cap.
+void test_vane_floored_at_spool_position(void) {
+    BoostConfig cfg = makeConfig();
+    BoostInputs in;
+    in.boostGaugePsi = 20.0f;  // high boost, PI, above spool-protect
+    in.tipGaugePsi = 20.0f;    // bpr = 1.0, error = +0.5 -> wants to close
+    BoostState st = {88.0f, false, true};  // integral wound to full travel
+    uint8_t vane = boostBprStep(in, cfg, st, 0.01f);
+    // closure is huge; vane would drive to 0 but is floored at the spool position
+    TEST_ASSERT_EQUAL_UINT8(cfg.spoolPercent, vane);
+}
+
 // Persistent large deficit: integral winds up to full travel, vanes fully closed.
 void test_integral_antiwindup_clamps_closed(void) {
     BoostConfig cfg = makeConfig();
@@ -161,7 +174,7 @@ void test_integral_antiwindup_clamps_closed(void) {
         vane = boostBprStep(in, cfg, st, 0.01f);
     }
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 88.0f, st.integralTerm);  // clamped at full travel
-    TEST_ASSERT_EQUAL_UINT8(0, vane);                          // fully closed
+    TEST_ASSERT_EQUAL_UINT8(cfg.spoolPercent, vane);           // floored at spool, not 0
 }
 
 // Hysteresis: once in PI, a boost dip into the dead band (between the two
@@ -237,6 +250,7 @@ int main(int, char **) {
     RUN_TEST(test_spool_protect_prevents_handoff_open_kick);
     RUN_TEST(test_spool_protect_releases_above_threshold);
     RUN_TEST(test_vane_open_cap_limits_slam);
+    RUN_TEST(test_vane_floored_at_spool_position);
     RUN_TEST(test_integral_antiwindup_clamps_closed);
     RUN_TEST(test_hysteresis_stays_pi_in_band);
     RUN_TEST(test_hysteresis_drops_to_spool_below_low);

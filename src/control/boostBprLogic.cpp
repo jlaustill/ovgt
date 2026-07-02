@@ -71,15 +71,13 @@ uint8_t boostBprStep(const BoostInputs &in, const BoostConfig &cfg,
         vane = (float)cfg.spoolPercent;
     }
 
-    // 6. Open-authority cap. Even above the spool-protect boost, if drive still
-    //    leads boost the proportional term commands the vane fully open, dumping
-    //    drive and stalling the spool. Steady BPR control never needs the vane past
-    //    ~40%, so cap the controller's open authority well below the mechanical open
-    //    limit; this blunts the transient slam without touching normal operation.
-    if (vane > (float)cfg.vaneOpenCapPercent) {
-        vane = (float)cfg.vaneOpenCapPercent;
-    }
-    return clampVane(vane, cfg.vaneClosedPercent, cfg.vaneOpenPercent);
+    // 6. Bound the PI demand to [spoolPercent, vaneOpenCapPercent]. The cap blunts
+    //    the open-slam; the floor — the SAME spoolPercent used to hold position
+    //    during spool — stops the loop from slamming fully closed, so even a
+    //    high-load limit cycle can only swing between the spool position and the
+    //    cap (e.g. 22<->55), never stop-to-stop. Tuning spoolPercent moves both the
+    //    spool hold and this floor together.
+    return clampVane(vane, cfg.spoolPercent, cfg.vaneOpenCapPercent);
 }
 
 float clampBprTarget(float value) {
