@@ -19,19 +19,28 @@ export interface SerialStream {
   write(data: string): boolean;
   on(event: "close", cb: () => void): this;
   on(event: "error", cb: (err: Error) => void): this;
+  // Real SerialPort exposes close(); releasing the OS file descriptor is what
+  // forces cdc_acm to drop and re-open the device after a silent stall. Optional
+  // so the test's fake stream (which has no fd) need not implement it.
+  close?(cb?: (err?: Error | null) => void): void;
 }
 
 export interface SerialLinkOptions {
   open: () => SerialStream;
   onLine: (line: string) => void;
-  onStatus?: (status: "open" | "closed" | "error", detail?: string) => void;
+  onStatus?: (status: "open" | "closed" | "error" | "stalled", detail?: string) => void;
   reconnectMs?: number;
+  // Force a reconnect if no line arrives for this long. Telemetry runs at 10 Hz
+  // (~100ms/line), so a couple of seconds of total silence means the stream is
+  // dead even though no error/close event fired.
+  stallTimeoutMs?: number;
 }
 
 export class SerialLink {
   private port?: SerialStream;
   private stopped = false;
   private reconnectTimer?: ReturnType<typeof setTimeout>;
+  private activityTimer?: ReturnType<typeof setTimeout>;
 
   constructor(private readonly opts: SerialLinkOptions) {}
 
@@ -53,22 +62,67 @@ export class SerialLink {
     }
     this.port = port;
     const parser = port.pipe(new ReadlineParser({ delimiter: "\n" }));
-    parser.on("data", (line: string) => this.opts.onLine(line));
+    parser.on("data", (line: string) => {
+      if (port !== this.port) return; // ignore a torn-down port's stragglers
+      this.noteActivity();
+      this.opts.onLine(line);
+    });
     // A disconnect can surface as either "error" or "close" (or both); either
-    // must schedule a reconnect. scheduleReconnect() de-dupes.
+    // must schedule a reconnect. scheduleReconnect() de-dupes. The identity guard
+    // stops a stale (already-replaced) port from tearing down a fresh connection.
     port.on("error", (err) => {
+      if (port !== this.port) return;
       this.opts.onStatus?.("error", err.message);
       this.scheduleReconnect();
     });
     port.on("close", () => {
+      if (port !== this.port) return;
       this.opts.onStatus?.("closed");
       this.scheduleReconnect();
     });
     this.opts.onStatus?.("open");
+    this.noteActivity(); // arm the stall watchdog for this fresh connection
+  }
+
+  // Called on every received line and on a fresh connect: (re)arm the inactivity
+  // watchdog. If it fires, the stream has gone silent → handleStall().
+  private noteActivity(): void {
+    if (this.activityTimer) clearTimeout(this.activityTimer);
+    if (this.stopped) return;
+    this.activityTimer = setTimeout(() => this.handleStall(), this.opts.stallTimeoutMs ?? 2000);
+  }
+
+  // TODO(you): the stall recovery policy — you decided "2s silence → tear down
+  // and reconnect" (mirrors what a physical replug does). Implement it here.
+  //
+  // When this fires, `this.port` is the stalled port and NO error/close event
+  // ever came. You need to:
+  //   1. Tell the UI something changed          -> this.opts.onStatus?.("stalled")
+  //   2. Release the current port's fd so the OS can re-enumerate cdc_acm.
+  //      The real port has .close() (optional on the interface); the old port's
+  //      "close" event is guarded away once step 3 runs, so call it best-effort:
+  //          this.port?.close?.();
+  //   3. Detach from the stalled port so its late events are ignored, then
+  //      reopen: clear this.port, then this.scheduleReconnect().
+  //
+  // Trade-off to weigh: is closing the fd (step 2) strictly required, or would
+  // reopening a second handle be enough? On Linux cdc_acm a stuck fd usually must
+  // be released before a fresh open() delivers bytes again — which is exactly why
+  // only a physical replug fixes it today.
+  private handleStall(): void {
+    if (this.stopped || this.port === undefined) return;
+    this.opts.onStatus?.("stalled");
+    const stalled = this.port;
+    this.port = undefined;   // detach first: the identity guards now ignore any
+                             // late close/error/data from this stalled port
+    stalled.close?.();       // best-effort fd release so cdc_acm can re-enumerate
+    this.scheduleReconnect();
   }
 
   private scheduleReconnect(): void {
     if (this.stopped || this.reconnectTimer) return;
+    if (this.activityTimer) clearTimeout(this.activityTimer);
+    this.activityTimer = undefined;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = undefined;
       this.connect();
@@ -84,6 +138,10 @@ export class SerialLink {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = undefined;
+    }
+    if (this.activityTimer) {
+      clearTimeout(this.activityTimer);
+      this.activityTimer = undefined;
     }
   }
 }

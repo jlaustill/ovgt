@@ -82,3 +82,31 @@ test("reconnects after an error event", async () => {
   await new Promise((r) => setTimeout(r, 20));
   expect(open).toHaveBeenCalledTimes(2);
 });
+
+// The lockup bug: bytes silently stop arriving with NO "close" and NO "error"
+// event (Teensy still powered, cable still seated, USB CDC just stalled). Without
+// a watchdog the link waits forever; only a physical replug revives it. The link
+// must detect the silence and force a reconnect on its own.
+test("reconnects after a silent stall (no data, no close/error)", async () => {
+  const open = vi.fn(() => new FakeSerial());
+  const link = new SerialLink({ open, onLine: () => {}, reconnectMs: 5, stallTimeoutMs: 15 });
+  link.start();
+  const first = open.mock.results[0]!.value as FakeSerial;
+  first.inject('{"type":"t"}\n'); // one line arrives, then the stream goes quiet
+  await new Promise((r) => setTimeout(r, 40)); // silence longer than stallTimeoutMs
+  expect(open).toHaveBeenCalledTimes(2);
+});
+
+// The watchdog must not fire while telemetry is flowing normally: each received
+// line resets the inactivity clock.
+test("does not reconnect while data keeps arriving", async () => {
+  const open = vi.fn(() => new FakeSerial());
+  const link = new SerialLink({ open, onLine: () => {}, reconnectMs: 5, stallTimeoutMs: 30 });
+  link.start();
+  const port = open.mock.results[0]!.value as FakeSerial;
+  for (let i = 0; i < 5; i++) {
+    port.inject('{"type":"t"}\n');
+    await new Promise((r) => setTimeout(r, 10)); // 10ms gap < 30ms stall timeout
+  }
+  expect(open).toHaveBeenCalledTimes(1);
+});
