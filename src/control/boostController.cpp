@@ -12,22 +12,21 @@
 
 static const float HPA_TO_PSI = 0.0145038f;
 
-// BPR controller config. bprTarget/kp/ki are runtime-tunable over serial (see
-// setBprTarget/setKp/setKi) so the target (2.0 / 1.5 / 1.25 ...) and gains can be
-// swept on the truck without reflashing. The rest are compile-time. NOTE: BPR
-// error is a 0..1 ratio, so kp is in the tens (vane-% per unit error), unlike the
-// brake's psi-scale kp. kp/ki below were validated on-truck (kp=88 was bang-bang;
-// kp=20/ki=20 glides and locks BPR=1.00 at sustained cruise).
+// BPR controller config. ALL values are compile-time constants — to tune, edit
+// here and reflash. There are deliberately NO runtime setters: changing tuning
+// live over serial is a driving hazard. NOTE: BPR error is a 0..1 ratio, so kp is
+// in the tens (vane-% per unit error), unlike the brake's psi-scale kp. kp/ki were
+// validated on-truck (kp=88 was bang-bang; kp=20/ki=20 glides at sustained cruise).
 // No boost ceiling: targets BPR only (deliberate — see design doc).
 static BoostConfig boostConfig = {
-    1.5f,                // bprTarget (runtime-tunable: `bpr <value>`)
+    1.5f,                // bprTarget
     1.5f,                // boostSpoolPsi (fall back to spool below this)
     3.0f,                // boostPiPsi (engage PI above this; hysteresis dead band)
     22,                  // spoolPercent (fixed vane position while spooling)
     VANE_CLOSED_PERCENT, // vaneClosedPercent (max drive / boost)
     VANE_OPEN_PERCENT,   // vaneOpenPercent (relief / mechanical open limit)
-    20.0f,               // kp (runtime-tunable: `kp <value>`)
-    20.0f,               // ki (runtime-tunable: `ki <value>`)
+    20.0f,               // kp
+    20.0f,               // ki
     6.0f,                // spoolProtectBoostPsi (below this boost, don't open past spool)
     55                   // vaneOpenCapPercent (controller may not open past this;
                          // settled operation stays <=50%, so this clips only the kick)
@@ -102,29 +101,6 @@ void BoostController::update() {
 #endif
 }
 
-void BoostController::setBprTarget(float value) { boostConfig.bprTarget = clampBprTarget(value); }
-void BoostController::setKp(float value) { boostConfig.kp = clampGain(value); }
-void BoostController::setKi(float value) { boostConfig.ki = clampGain(value); }
 float BoostController::getBprTarget() { return boostConfig.bprTarget; }
 bool BoostController::getInPiRegion() { return boostState.inPiRegion; }
 float BoostController::getIntegralTerm() { return boostState.integralTerm; }
-
-void BoostController::printParams() {
-#if BOOST_USE_BPR
-    Serial.print("boost mode: BPR  target=");
-    Serial.print(boostConfig.bprTarget);
-    Serial.print(" kp=");
-    Serial.print(boostConfig.kp);
-    Serial.print(" ki=");
-    Serial.print(boostConfig.ki);
-    Serial.print(" spool=");
-    Serial.print(boostConfig.spoolPercent);
-    Serial.print("% spoolPsi=");
-    Serial.print(boostConfig.boostSpoolPsi);
-    Serial.print(" piPsi=");
-    Serial.print(boostConfig.boostPiPsi);
-    Serial.println("psi");
-#else
-    Serial.println("boost mode: MAP (legacy lookup table)");
-#endif
-}

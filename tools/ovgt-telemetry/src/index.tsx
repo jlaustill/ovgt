@@ -33,9 +33,8 @@ function parseArgs(argv: string[]): Args {
 
 type Feed = EventEmitter;
 
-function Root({ feed, sendCommand, onRelabel, initialLabel }: {
+function Root({ feed, onRelabel, initialLabel }: {
   feed: Feed;
-  sendCommand: (c: string) => void;
   onRelabel: (l: string) => void;
   initialLabel: string;
 }): React.ReactElement {
@@ -62,7 +61,6 @@ function Root({ feed, sendCommand, onRelabel, initialLabel }: {
       logs={logs}
       sessionLabel={label}
       status={status}
-      onCommand={sendCommand}
       onRelabel={(l) => {
         setLabel(l);
         onRelabel(l);
@@ -135,7 +133,6 @@ async function main(): Promise<void> {
   const instance = render(
     <Root
       feed={feed}
-      sendCommand={(c) => link.send(c)}
       onRelabel={(l) => void store?.relabel(l)}
       initialLabel={args.label}
     />,

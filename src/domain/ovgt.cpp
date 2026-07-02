@@ -36,8 +36,6 @@ static elapsedMicros cotSampleDt;
 
 volatile uint32_t ovgt::count;
 
-uint8_t ovgt::manualPwm = 0;
-bool ovgt::manualMode = false;
 uint32_t ovgt::cyclesAdc = 0;
 uint32_t ovgt::cyclesBoost = 0;
 uint32_t ovgt::cyclesActuator = 0;
@@ -63,7 +61,7 @@ void ovgt::handleDebug() {
     Json_begin();
     Json_addStr("type", "t");
     Json_addUint("t_ms", (uint32_t)millis());
-    Json_addStr("mode", manualMode ? "manual" : (appData.exhaustBrakeActive ? "brake" : "auto"));
+    Json_addStr("mode", appData.exhaustBrakeActive ? "brake" : "auto");
     Json_addUint("cop_hpa", appData.compressorOutputPressureHpaa);
     Json_addUint("cip_hpa", appData.compressorInputPressureHpaa);
     Json_addFloat2("boost_psi", boostPsi);
@@ -81,7 +79,7 @@ void ovgt::handleDebug() {
     Json_addFloat2("mcu_c", tempmonGetTemp());  // Teensy 4.1 on-die temperature
     Json_addFloat2("ce_pct", efficiency >= 0.0f ? efficiency * 100.0f : -1.0f);
     Json_addBool("ce_settled", ceSettled);
-    Json_addUint("dem_pct", manualMode ? manualPwm : appData.actuatorDemandedPosition);
+    Json_addUint("dem_pct", appData.actuatorDemandedPosition);
     Json_addUint("pos_pct", appData.actuatorReportedPosition);
     Json_addBool("brake", appData.exhaustBrakeActive);
     Json_end();
@@ -128,62 +126,9 @@ void ovgt::setup() {
     J1939::Initialize();
 
     Serial.println("Setup complete");
-    Serial.println("Type a number 0-100 to set vane position %, or 'auto' for normal operation");
-    Serial.println("Tuning: 'bpr <v>', 'kp <v>', 'ki <v>', 'params' (BPR mode only)");
-}
-
-void ovgt::handleSerial() {
-    static char buf[16];
-    static uint8_t idx = 0;
-
-    while (Serial.available()) {
-        char c = Serial.read();
-        if (c == '\n' || c == '\r') {
-            if (idx == 0) continue;
-            buf[idx] = '\0';
-            if (strcmp(buf, "auto") == 0) {
-                manualMode = false;
-                Serial.println("Switched to auto mode");
-            } else if (strcmp(buf, "params") == 0) {
-                BoostController::printParams();
-            } else if (strncmp(buf, "bpr ", 4) == 0) {
-                float value = atof(buf + 4);
-                BoostController::setBprTarget(value);
-                Serial.print("BPR target = ");
-                Serial.println(value);
-            } else if (strncmp(buf, "kp ", 3) == 0) {
-                float value = atof(buf + 3);
-                BoostController::setKp(value);
-                Serial.print("kp = ");
-                Serial.println(value);
-            } else if (strncmp(buf, "ki ", 3) == 0) {
-                float value = atof(buf + 3);
-                BoostController::setKi(value);
-                Serial.print("ki = ");
-                Serial.println(value);
-            } else {
-                int val = atoi(buf);
-                if (val >= 0 && val <= 100) {
-                    manualPwm = (uint8_t)val;
-                    manualMode = true;
-                    appData.actuatorDemandedPosition = manualPwm;
-                    Serial.print("Position set to ");
-                    Serial.print(manualPwm);
-                    Serial.println("%");
-                } else {
-                    Serial.println("Invalid: 0-100 or 'auto'");
-                }
-            }
-            idx = 0;
-        } else if (idx < 15) {
-            buf[idx++] = c;
-        }
-    }
 }
 
 void ovgt::loop() {
-    handleSerial();
-
     AdcSensors::update();
     TitSensor::update();
     if (CotSensor::update()) {
@@ -229,11 +174,8 @@ void ovgt::loop() {
 
     J1939::Loop();   // process RX first so brake/boost act on fresh CAN data
 
-    // In manual mode neither controller may touch actuatorDemandedPosition,
-    // otherwise the boost map clobbers the manually commanded vane position
-    // every cycle. The serial handler owns the demand while manual is active.
-    bool braking = ExhaustBrakeController::update(manualMode);
-    if (!manualMode && !braking) {
+    bool braking = ExhaustBrakeController::update(false);
+    if (!braking) {
         BoostController::update();
     }
 

@@ -80,14 +80,3 @@ uint8_t boostBprStep(const BoostInputs &in, const BoostConfig &cfg,
     return clampVane(vane, cfg.spoolPercent, cfg.vaneOpenCapPercent);
 }
 
-float clampBprTarget(float value) {
-    if (value < 1.0f) return 1.0f;
-    if (value > 2.5f) return 2.5f;
-    return value;
-}
-
-float clampGain(float value) {
-    if (value < 0.0f) return 0.0f;
-    if (value > 200.0f) return 200.0f;
-    return value;
-}

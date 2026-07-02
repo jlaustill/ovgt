@@ -224,24 +224,8 @@ void test_hysteresis_enters_pi_above_high(void) {
     TEST_ASSERT_TRUE(st.inPiRegion);
 }
 
-// A garbage serial command (e.g. keys mashed by a dropped object) must not load
-// a dangerous value: bprTarget clamps to [1.0, 2.5], gains to [0, 200].
-void test_clamp_bpr_target(void) {
-    TEST_ASSERT_EQUAL_FLOAT(1.5f, clampBprTarget(1.5f));   // in range
-    TEST_ASSERT_EQUAL_FLOAT(1.0f, clampBprTarget(-6.65f)); // the real keyboard glitch
-    TEST_ASSERT_EQUAL_FLOAT(2.5f, clampBprTarget(9.0f));   // absurd high
-}
-
-void test_clamp_gain(void) {
-    TEST_ASSERT_EQUAL_FLOAT(20.0f, clampGain(20.0f));  // in range
-    TEST_ASSERT_EQUAL_FLOAT(0.0f, clampGain(-5.0f));   // negative gain would invert control
-    TEST_ASSERT_EQUAL_FLOAT(200.0f, clampGain(1000.0f));
-}
-
 int main(int, char **) {
     UNITY_BEGIN();
-    RUN_TEST(test_clamp_bpr_target);
-    RUN_TEST(test_clamp_gain);
     RUN_TEST(test_spool_region_holds_spool_position);
     RUN_TEST(test_bpr_below_target_closes);
     RUN_TEST(test_bpr_above_target_opens);

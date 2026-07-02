@@ -23,54 +23,17 @@ async function press(stdin: { write: (s: string) => void }, s: string): Promise<
 
 test("renders the telemetry panel", () => {
   const { lastFrame } = render(
-    <App sample={sample} logs={["Setup complete"]} sessionLabel="drive-1" status="open" onCommand={() => {}} onRelabel={() => {}} />,
+    <App sample={sample} logs={["Setup complete"]} sessionLabel="drive-1" status="open" onRelabel={() => {}} />,
   );
   expect(lastFrame()).toContain("COT 20.9C");
   expect(lastFrame()).toContain("drive-1");
   expect(lastFrame()).toContain("Setup complete");
 });
 
-test("pressing ] sends an absolute bpr command", async () => {
-  const cmds: string[] = [];
-  const { stdin } = render(
-    <App sample={sample} logs={[]} sessionLabel="t" status="open" onCommand={(c) => cmds.push(c)} onRelabel={() => {}} />,
-  );
-  await tick();
-  await press(stdin, "]");
-  expect(cmds).toContain("bpr 1.05");
-});
-
-test("manual vane requires y-confirmation (Enter alone does not send)", async () => {
-  const cmds: string[] = [];
-  const { stdin } = render(
-    <App sample={sample} logs={[]} sessionLabel="t" status="open" onCommand={(c) => cmds.push(c)} onRelabel={() => {}} />,
-  );
-  await tick();
-  await press(stdin, "4");
-  await press(stdin, "5");
-  await press(stdin, "\r");
-  expect(cmds).not.toContain("45"); // not sent until explicitly confirmed
-  await press(stdin, "y");
-  expect(cmds).toContain("45");
-});
-
-test("a stray key after Enter cancels the manual vane (no accidental manual mode)", async () => {
-  const cmds: string[] = [];
-  const { stdin } = render(
-    <App sample={sample} logs={[]} sessionLabel="t" status="open" onCommand={(c) => cmds.push(c)} onRelabel={() => {}} />,
-  );
-  await tick();
-  await press(stdin, "4");
-  await press(stdin, "5");
-  await press(stdin, "\r");
-  await press(stdin, "x"); // something falls on the keyboard
-  expect(cmds).not.toContain("45"); // cancelled, never entered manual mode
-});
-
 test("l then typing then Enter relabels", async () => {
   const labels: string[] = [];
   const { stdin } = render(
-    <App sample={sample} logs={[]} sessionLabel="t" status="open" onCommand={() => {}} onRelabel={(l) => labels.push(l)} />,
+    <App sample={sample} logs={[]} sessionLabel="t" status="open" onRelabel={(l) => labels.push(l)} />,
   );
   await tick();
   await press(stdin, "l");

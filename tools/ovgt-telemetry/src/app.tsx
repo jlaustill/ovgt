@@ -1,7 +1,7 @@
 import { Box, Text, useApp, useInput } from "ink";
 import React from "react";
 import { formatTelemetry } from "./format";
-import { handleKey, type TuningView } from "./keymap";
+import { handleKey } from "./keymap";
 import type { SettleEvent, TelemetrySample } from "./types";
 
 export interface AppProps {
@@ -10,16 +10,15 @@ export interface AppProps {
   logs: string[];
   sessionLabel: string;
   status: string;
-  onCommand: (command: string) => void;
   onRelabel: (label: string) => void;
 }
 
+// The TUI is read-only for the truck: it displays telemetry and lets you label
+// the session, nothing more. Tuning is compile-time (edit firmware + reflash) by
+// design — there are deliberately no keys that change the controller live.
 export function App(props: AppProps): React.ReactElement {
-  const { sample, settle, logs, sessionLabel, status, onCommand, onRelabel } = props;
+  const { sample, settle, logs, sessionLabel, status, onRelabel } = props;
   const { exit } = useApp();
-  const [tuning, setTuning] = React.useState({ kp: 20, ki: 20 });
-  const [vaneBuf, setVaneBuf] = React.useState("");
-  const [pendingVane, setPendingVane] = React.useState<number | null>(null);
   const [labelMode, setLabelMode] = React.useState(false);
   const [labelBuf, setLabelBuf] = React.useState("");
 
@@ -40,37 +39,8 @@ export function App(props: AppProps): React.ReactElement {
       return;
     }
 
-    // Manual-vane confirmation gate: entering manual mode is deliberate. Only 'y'
-    // confirms; ANY other key cancels — so a dropped object mashing the keyboard
-    // can never flip the truck into a fixed-vane manual mode by accident.
-    if (pendingVane !== null) {
-      if (input === "y") onCommand(String(pendingVane));
-      setPendingVane(null);
-      return;
-    }
-
-    if (/^[0-9]$/.test(input)) {
-      setVaneBuf((b) => (b + input).slice(0, 3));
-      return;
-    }
-    if (key.return) {
-      if (vaneBuf) {
-        setPendingVane(Math.min(100, parseInt(vaneBuf, 10)));
-        setVaneBuf("");
-      }
-      return;
-    }
-    if (key.escape) {
-      setVaneBuf("");
-      return;
-    }
-
-    const view: TuningView = { bprTarget: sample?.bpr_target ?? 1.0, kp: tuning.kp, ki: tuning.ki };
-    const res = handleKey(input, view);
-    if (res.type === "command") {
-      onCommand(res.command);
-      setTuning({ kp: res.tuning.kp, ki: res.tuning.ki });
-    } else if (res.type === "action") {
+    const res = handleKey(input);
+    if (res.type === "action") {
       if (res.action === "relabel") setLabelMode(true);
       else if (res.action === "quit") exit();
     }
@@ -82,7 +52,7 @@ export function App(props: AppProps): React.ReactElement {
     <Box flexDirection="column">
       <Box borderStyle="round" flexDirection="column" paddingX={1}>
         <Text bold>
-          OVGT [{sessionLabel}] {status} kp {tuning.kp} ki {tuning.ki}
+          OVGT [{sessionLabel}] {status}
         </Text>
         {lines.map((l, i) => (
           <Text key={i}>{l}</Text>
@@ -93,10 +63,6 @@ export function App(props: AppProps): React.ReactElement {
             {settle.cot_slope_c_s.toFixed(2)}C/s
           </Text>
         )}
-        {vaneBuf && <Text color="yellow">vane → {vaneBuf} (Enter to confirm)</Text>}
-        {pendingVane !== null && (
-          <Text color="red">⚠ MANUAL {pendingVane}% — press y to confirm, any other key cancels</Text>
-        )}
         {labelMode && <Text color="green">label → {labelBuf}_ (Enter to save, Esc cancel)</Text>}
       </Box>
       <Box flexDirection="column" paddingX={1}>
@@ -106,7 +72,7 @@ export function App(props: AppProps): React.ReactElement {
           </Text>
         ))}
       </Box>
-      <Text dimColor>[ ] bpr  , . kp  ; ' ki  a auto  p params  digits+Enter vane  l label  q quit</Text>
+      <Text dimColor>l label  q quit  ·  tuning is compile-time (edit firmware + reflash)</Text>
     </Box>
   );
 }
