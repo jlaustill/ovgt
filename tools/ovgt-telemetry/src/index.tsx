@@ -105,14 +105,18 @@ async function main(): Promise<void> {
   const feed: Feed = new EventEmitter();
   if (store) await store.connect(args.label, hostname());
 
+  // Surface Mongo write health in the log (edge-triggered inside the store, so
+  // an outage logs once, not once per 10 Hz sample).
+  if (store) store.onWriteError = (message) => feed.emit("log", message);
+
   const handleLine = (line: string): void => {
     const parsed = parseLine(line);
     if (parsed.kind === "telemetry") {
       feed.emit("sample", parsed.sample);
-      void store?.insertTelemetry(parsed.sample);
+      store?.recordTelemetry(parsed.sample);
     } else if (parsed.kind === "settle") {
       feed.emit("settle", parsed.event);
-      void store?.insertSettle(parsed.event);
+      store?.recordSettle(parsed.event);
     } else if (parsed.text !== "") {
       feed.emit("log", parsed.text);
     }

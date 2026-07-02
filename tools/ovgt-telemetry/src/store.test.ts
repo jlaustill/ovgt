@@ -1,5 +1,5 @@
 import { MongoClient } from "mongodb";
-import { afterAll, expect, test } from "vitest";
+import { afterAll, expect, test, vi } from "vitest";
 import { MongoStore, type SessionDoc } from "./store";
 import type { SettleEvent, TelemetrySample } from "./types";
 
@@ -23,6 +23,28 @@ afterAll(async () => {
   await client.connect();
   await client.db(dbName).dropDatabase();
   await client.close();
+});
+
+// No Mongo needed: the store is never connected; we stub the insert to control
+// success/failure and assert the fire-and-forget path reports edge-triggered.
+test("live writes report Mongo failures once per outage, and recovery", async () => {
+  const store = new MongoStore(uri);
+  const messages: string[] = [];
+  store.onWriteError = (m) => messages.push(m);
+  const flush = () => new Promise((r) => setTimeout(r, 0));
+
+  const insert = vi.spyOn(store, "insertTelemetry").mockRejectedValue(new Error("ECONNREFUSED"));
+  store.recordTelemetry(sample);
+  store.recordTelemetry(sample);
+  store.recordTelemetry(sample);
+  await flush();
+  // 3 failed writes, but only ONE message — no flood at 10 Hz.
+  expect(messages).toEqual(["mongo write failed: ECONNREFUSED"]);
+
+  insert.mockResolvedValue(undefined);
+  store.recordTelemetry(sample);
+  await flush();
+  expect(messages).toEqual(["mongo write failed: ECONNREFUSED", "mongo writes recovered"]);
 });
 
 test("connect creates a session and inserts telemetry + settle with sessionId", async () => {

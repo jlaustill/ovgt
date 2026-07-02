@@ -13,6 +13,12 @@ export class MongoStore {
   private readonly client: MongoClient;
   private db?: Db;
   private sessionId?: string;
+  private writeFailing = false;
+
+  // Notified when live-write health changes. Edge-triggered: fires once when
+  // writes start failing and once when they recover, so a Mongo outage cannot
+  // flood the UI with one message per 10 Hz sample.
+  onWriteError?: (message: string) => void;
 
   constructor(uri: string, private readonly dbName = "ovgt") {
     this.client = new MongoClient(uri);
@@ -40,6 +46,35 @@ export class MongoStore {
   async insertSettle(event: SettleEvent): Promise<void> {
     if (!this.db) return;
     await this.db.collection("settle_events").insertOne({ ...event, ts: new Date(), sessionId: this.sessionId });
+  }
+
+  // Fire-and-forget writes for the live path. These never reject — a failed
+  // write is reported through onWriteError on transition, not per sample — so a
+  // Mongo outage neither crashes the process (unhandled rejection) nor blocks
+  // the serial read/render loop. Replay uses the awaited insert* methods above.
+  recordTelemetry(sample: TelemetrySample): void {
+    this.guardWrite(this.insertTelemetry(sample));
+  }
+
+  recordSettle(event: SettleEvent): void {
+    this.guardWrite(this.insertSettle(event));
+  }
+
+  private guardWrite(write: Promise<void>): void {
+    write.then(
+      () => {
+        if (this.writeFailing) {
+          this.writeFailing = false;
+          this.onWriteError?.("mongo writes recovered");
+        }
+      },
+      (err: unknown) => {
+        if (!this.writeFailing) {
+          this.writeFailing = true;
+          this.onWriteError?.(`mongo write failed: ${(err as Error).message}`);
+        }
+      },
+    );
   }
 
   async relabel(label: string): Promise<void> {
