@@ -47,20 +47,40 @@ Make every Teensy reset **self-documenting in MongoDB**, and add **fast
 auto-recovery**, so the next drive tells us electrical-vs-firmware instead of
 guessing. Strictly additive — **zero change to control behavior or tuning.**
 
+## Host pipeline constraint (drives the Phase 1 shape)
+
+Phase 1 is **firmware-only** — no changes to `tools/ovgt-telemetry`. Two verified
+facts about the current host tool shape the design:
+
+- `store.ts:43` inserts `{ ...sample, ts, sessionId }` — it **spreads the whole
+  sample**, so any new field added to a `type:"t"` record is **stored in Mongo
+  automatically**, no host change needed.
+- `parse.ts:18-21` routes `type:"t"` → telemetry, `type:"s"` → settle, and **any
+  other `type` → `"log"` (discarded, not stored)**. A new `type:"boot"` record
+  would therefore be **dropped** by today's parser.
+
+**Consequence:** in Phase 1 the reset/health information rides as **fields on the
+regular `"t"` record** (which auto-stores), not as a separate boot record. The
+dedicated `type:"boot"` record, the full crash-report text in Mongo, and the TUI
+banner are Phase 2 (host tool).
+
 ## Scope
 
-### In scope (Phase 1 — flashable ASAP)
+### In scope (Phase 1 — firmware-only, flashable ASAP)
 
 - Reset-cause capture from the IMXRT `SRC_SRSR` register.
-- A structured **boot record** emitted into the telemetry stream.
 - A boot counter persisted across reset in a retained GPR register.
-- `pgFault`, Vin (supply voltage), and loop-timing fields added to the 10 Hz
-  telemetry record.
+- New fields on the 10 Hz `"t"` record: `reset_cause`, `boot_count`, `crash`,
+  `pg`, `vin_mv`, `loop_us_max`, `loop_us_avg`, `setup_ms`.
 - On-chip IMXRT WDOG1 watchdog with compile-time disable.
-- Host-tool changes to parse, store, and surface the new records.
+- Loop-timing profiling so the 2 s watchdog timeout can later be right-sized from
+  data.
 
-### Deferred (Phase 2 — separate spec, after Phase 1 data)
+### Deferred (Phase 2 — host tool + evidence-driven, separate spec)
 
+- Dedicated `type:"boot"` record: `parse.ts`/`store.ts` ingest, full
+  `crash_report` text into Mongo, TUI reset banner + last-reset-cause/boot-count
+  display, and a loop-timing analysis view.
 - Safe-vane-on-boot behavior (the vane flops to ~82% during a reboot window).
 - The evidence-driven power/hardware brownout fix (hold-up capacitance, wiring,
   regulator).
@@ -97,11 +117,13 @@ Public scope `SystemHealth`:
     brownout signal.
   - Start the watchdog (see §3).
 - **`feed()`** — called once per 100 Hz loop tick; performs the WDOG1 service
-  sequence.
+  sequence and records the inter-feed interval for loop-timing stats.
 - **`sampleSupply()`** — reads the Vin ADC pin, tracks **minimum since last
   telemetry emit** (fast dips otherwise fall between 10 Hz samples).
 - **Accessors** for telemetry assembly: `resetCause()`, `bootCount()`,
-  `maxLoopMicros()`, `supplyMillivolts()`.
+  `crashPresent()`, `loopMicrosMax()`, `loopMicrosAvg()`, `supplyMillivolts()`,
+  `setupMillis()`. The max/avg/min accessors reset their accumulators on read so
+  each 100 ms window is independent.
 
 Register access (`SRC_SRSR`, `WDOG1_*`, `SRC_GPR*`, ADC) uses C-Next
 bit-indexing. Register addresses are referenced from the Teensy core
@@ -111,70 +133,66 @@ declaration or per-register C++ shim bridges it.
 ### 2. C++ interop shim (minimal, unavoidable)
 
 `CrashReport` is a C++ core object (has `operator bool` and stream semantics),
-not reachable from C-Next. A tiny C++ helper:
-
-```cpp
-// returns true if a crash report was present; writes a truncated,
-// JSON-safe string into buf
-bool crashReportToString(char* buf, size_t n);
-```
-
-This is the **only** C++ interop in Phase 1 — the watchdog itself stays
-pure-register in C-Next, avoiding `WDT_T4` C++ template instantiation.
+not reachable from C-Next. Phase 1 needs only the **presence** of a crash
+(`crashPresent()` → the `crash` boolean field); the full report text stays as the
+existing `Serial.println(CrashReport)` (captured in the serial `.log`), and is
+routed into Mongo in Phase 2. If reading `operator bool` from C-Next proves
+awkward, a one-line C++ shim `bool crashReportPresent()` bridges it. The watchdog
+stays pure-register in C-Next (no `WDT_T4` C++ template instantiation).
 
 ### 3. Watchdog
 
 - IMXRT **WDOG1**, timeout **~2 s** (the main loop runs every 10 ms, so the
-  margin is ~200×).
+  margin is ~200×) as a **conservative starting value** to be tightened from the
+  loop-timing data (§4) once we know the real worst-case inter-feed interval.
 - Started early in `SystemHealth.init()`, then **fed after each blocking
   `Initialize()` call** in `ovgt::setup()` (ADS, MAX31856, FRAM, CAN can each
   block) and once per loop tick thereafter.
-- A loop hang > 2 s → hardware reset → the next boot record reports
-  `reset_cause: "wdog"`. Converts the silent ~44 s-dead observed on 2026-07-02
-  into a ~2 s auto-recovery.
+- A loop hang > timeout → hardware reset → the next boot's `reset_cause` reports
+  `wdog`. Converts the silent ~44 s-dead observed on 2026-07-02 into a ~2 s
+  auto-recovery.
 - **Compile-time togglable** (`OVGT_WATCHDOG_ENABLED`) so it can be disabled and
   reflashed immediately if it ever causes a boot loop.
 
-### 4. Telemetry additions (`ovgt.cpp`)
+### 4. Telemetry additions (`ovgt.cpp`, fields on the `"t"` record)
 
-**Boot record** — emitted once, in `setup()` after `SystemHealth.init()`:
+Added to the existing 10 Hz `"t"` record (all auto-store via `store.ts` spread):
 
-```json
-{"type":"boot","t_ms":12,"reset_cause":"wdog","boot_count":37,
- "fw":"<build id>","crash":true,"crash_report":"<truncated>"}
-```
+| Field | Type | Meaning |
+| ----- | ---- | ------- |
+| `reset_cause` | string | `por` / `brownout` / `wdog` / `wdog3` / `lockup` / `jtag` / `pin` / `unknown`. Constant per session; emitted every sample so it is robust to dropped samples and trivially queryable. |
+| `boot_count` | int | Retained-register boot counter. |
+| `crash` | bool | A Teensy `CrashReport` was present on this boot (full text in serial log; into Mongo in Phase 2). |
+| `pg` | bool | Power-good input (`appData.pgFault`). |
+| `vin_mv` | int | Supply millivolts, minimum since last emit; `-1` until the Vin divider is present. |
+| `loop_us_max` | int | Maximum inter-feed (100 Hz tick) interval, µs, since last emit. |
+| `loop_us_avg` | int | Mean inter-feed interval, µs, since last emit. |
+| `setup_ms` | int | Total `setup()` duration. Constant per session; characterizes the boot-time budget (the blocking inits a tight boot-time watchdog would trip on). |
 
-`reset_cause` is one of: `por`, `brownout`, `wdog`, `wdog3`, `lockup`, `jtag`,
-`pin`, `unknown`. `crash` is false and `crash_report` omitted when no crash
-report is present.
+**Loop-timing rationale:** the watchdog's 2 s is a guess. `loop_us_max` /
+`loop_us_avg` are stored every 100 ms, so a `$max` / `$avg` / histogram over a
+drive reveals the true worst-case and typical inter-feed interval. That is the
+data needed to drop the timeout from 2 s to a realistic value (likely far less)
+without risking a false-trip boot loop.
 
-**Per-sample health** — folded into the existing 10 Hz `"t"` record:
+### 5. Host tool
 
-- `pg` — power-good boolean (`appData.pgFault`).
-- `vin_mv` — supply millivolts, minimum since last emit (`-1` until divider
-  present).
-- `loop_us_max` — maximum main-loop duration (µs) since last emit, from the DWT
-  cycle counter.
+**No Phase 1 changes.** The new `"t"` fields flow through `parse.ts` (already a
+`type:"t"` record) and `store.ts` (spreads the sample) unmodified. All host-tool
+work — the dedicated boot record, full crash text in Mongo, TUI banner, and a
+loop-timing analysis view — is Phase 2.
 
-### 5. Host tool (`tools/ovgt-telemetry`)
-
-- **`parse.ts`** — accept `type:"boot"` lines and the new `"t"` fields; keep
-  ignoring non-JSON.
-- **`store.ts`** — persist boot records to the `telemetry` collection tagged by
-  `type`, so they are queryable alongside samples (`{type:"boot"}` filter).
-- **`app.tsx`** (TUI) — surface **last reset cause + boot count**, and show a
-  visible **reset banner** when a boot record arrives, so a lockup is obvious
-  live rather than only in post-hoc forensics.
-
-## Data flow
+## Data flow (Phase 1)
 
 ```
-boot:  SRC_SRSR ──► SystemHealth.init() ──► resetCause/bootCount
-       CrashReport ──► crashReportToString() ──┐
-                                               ├─► ovgt boot record ─► Serial JSON ─► host parse ─► Mongo (type:"boot")
-loop:  DWT timing ──► maxLoopMicros() ─────────┤
-       PG_PIN ──► appData.pgFault ─────────────┤
-       Vin ADC ──► SystemHealth.sampleSupply() ─► ovgt "t" record ─► Serial JSON ─► host parse ─► Mongo (type:"t")
+boot:  SRC_SRSR ──► SystemHealth.init() ──► resetCause / bootCount
+       CrashReport ──► crashPresent() ──► crash bool
+                       (full text)   ──► Serial.println  (serial .log only; Mongo in Phase 2)
+loop:  100 Hz tick interval ──► loopMicrosMax/Avg ──┐
+       PG_PIN ──► appData.pgFault ─────────────────┤
+       Vin ADC ──► SystemHealth.sampleSupply() ────┼─► ovgt "t" record ─► Serial JSON
+                                                    │      ─► host parse (type:"t") ─► store spread ─► Mongo
+       reset_cause / boot_count / crash / setup_ms ─┘        (no host change)
        (every tick) SystemHealth.feed() ──► WDOG1
 ```
 
@@ -183,44 +201,42 @@ loop:  DWT timing ──► maxLoopMicros() ─────────┤
 ### Native (`pio test -e native`, host, no hardware)
 
 - **Reset-cause decode**: feed synthetic `SRSR` bit patterns → assert the correct
-  cause enum/string (one case per bit, plus multiple-bits-set precedence).
+  cause string (one case per bit, plus multiple-bits-set precedence).
 - **Boot counter**: increment logic given a starting retained value.
-- **Loop-timing tracker**: max-since-emit resets correctly after each emit.
+- **Loop-timing tracker**: max- and avg-since-emit compute correctly over a
+  sequence of intervals and reset after each emit.
 - **Vin min-tracker**: minimum-since-emit and the `-1` "no divider" sentinel.
-- **Boot-record JSON shape**: extend `test_json` to cover the boot record and the
-  new `"t"` fields (escaping of `crash_report`).
-- **Host**: `parse.ts` test for a `type:"boot"` line; `store` round-trip test for
-  a boot record (requires local MongoDB).
+- **`"t"` record JSON shape**: extend `test_json` to cover the new fields.
 
 Any newly tested `src/` file is added to the `[env:native]` `build_src_filter`
 in `platformio.ini`.
 
 ### On-hardware
 
-- Force each reset type and confirm the boot record's `reset_cause` in Mongo:
-  power-cycle → `por`; a deliberate `>2 s` blocking delay in a test build →
-  `wdog`; a software reset call → software/`unknown` as applicable.
-- Trigger a null-dereference in a test build → confirm `crash:true` and the
-  report text land in Mongo.
-- Confirm the watchdog does **not** fire during a normal cold boot (setup
-  feeding works).
+- Force each reset type and confirm `reset_cause` in Mongo: power-cycle → `por`;
+  a deliberate `> timeout` blocking delay in a test build → `wdog`; a software
+  reset call → software/`unknown` as applicable.
+- Trigger a null-dereference in a test build → confirm `crash:true` in Mongo (and
+  the report text in the serial log).
+- Confirm the watchdog does **not** fire during a normal cold boot (setup feeding
+  works).
+- Sanity-check `loop_us_avg` ≈ 10 000 µs at idle and that `loop_us_max` tracks
+  transient spikes.
 
 ## Risks and mitigations
 
 | Risk | Mitigation |
 | ---- | ---------- |
-| WDT too aggressive → boot loop | 2 s timeout (200× loop margin); feed through setup's blocking inits; `OVGT_WATCHDOG_ENABLED` compile-time kill switch. |
+| WDT too aggressive → boot loop | 2 s timeout (200× loop margin); feed through setup's blocking inits; `OVGT_WATCHDOG_ENABLED` compile-time kill switch; tighten only from logged data. |
 | C-Next cannot reach an `imxrt.h` register macro | `extern` declaration or a minimal per-register C++ shim; the bit-logic stays in C-Next. |
 | Boot counter lost on full power loss | Acceptable — that loss *is* the brownout signal. FRAM-backed counter deferred until FRAM lands. |
-| Boot record too large / breaks 10 Hz timing | Emitted once at boot only, not in the hot path; `crash_report` truncated to a fixed cap. |
-| Host tool drops unknown `type` | Explicit `parse.ts`/`store.ts` handling + a test guarding it. |
+| `crash` field misses the full report | Full text remains in the serial `.log` (existing println); Phase 2 routes it into Mongo. The `crash` bool + `reset_cause` are enough to classify the reset. |
+| Emitting constant fields every sample wastes bandwidth | `reset_cause`/`boot_count`/`setup_ms` are a few bytes at 115200 baud — negligible; every-sample emission is robust to dropped samples and keeps the parser unchanged. |
 
 ## Open decisions carried into implementation
 
 - Exact spare ADC pin for Vin and the divider ratio (owner selects based on free
   pins; both are compile-time constants).
-- `crash_report` truncation length (start ~200 chars; revisit if useful detail is
-  cut).
 
 ## Related
 
