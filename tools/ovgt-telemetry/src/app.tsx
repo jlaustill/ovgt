@@ -19,6 +19,7 @@ export function App(props: AppProps): React.ReactElement {
   const { exit } = useApp();
   const [tuning, setTuning] = React.useState({ kp: 20, ki: 20 });
   const [vaneBuf, setVaneBuf] = React.useState("");
+  const [pendingVane, setPendingVane] = React.useState<number | null>(null);
   const [labelMode, setLabelMode] = React.useState(false);
   const [labelBuf, setLabelBuf] = React.useState("");
 
@@ -39,13 +40,22 @@ export function App(props: AppProps): React.ReactElement {
       return;
     }
 
+    // Manual-vane confirmation gate: entering manual mode is deliberate. Only 'y'
+    // confirms; ANY other key cancels — so a dropped object mashing the keyboard
+    // can never flip the truck into a fixed-vane manual mode by accident.
+    if (pendingVane !== null) {
+      if (input === "y") onCommand(String(pendingVane));
+      setPendingVane(null);
+      return;
+    }
+
     if (/^[0-9]$/.test(input)) {
       setVaneBuf((b) => (b + input).slice(0, 3));
       return;
     }
     if (key.return) {
       if (vaneBuf) {
-        onCommand(String(Math.min(100, parseInt(vaneBuf, 10))));
+        setPendingVane(Math.min(100, parseInt(vaneBuf, 10)));
         setVaneBuf("");
       }
       return;
@@ -83,7 +93,10 @@ export function App(props: AppProps): React.ReactElement {
             {settle.cot_slope_c_s.toFixed(2)}C/s
           </Text>
         )}
-        {vaneBuf && <Text color="yellow">vane → {vaneBuf} (Enter to send)</Text>}
+        {vaneBuf && <Text color="yellow">vane → {vaneBuf} (Enter to confirm)</Text>}
+        {pendingVane !== null && (
+          <Text color="red">⚠ MANUAL {pendingVane}% — press y to confirm, any other key cancels</Text>
+        )}
         {labelMode && <Text color="green">label → {labelBuf}_ (Enter to save, Esc cancel)</Text>}
       </Box>
       <Box flexDirection="column" paddingX={1}>

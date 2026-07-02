@@ -40,7 +40,7 @@ test("pressing ] sends an absolute bpr command", async () => {
   expect(cmds).toContain("bpr 1.05");
 });
 
-test("digits then Enter send a clamped vane %", async () => {
+test("manual vane requires y-confirmation (Enter alone does not send)", async () => {
   const cmds: string[] = [];
   const { stdin } = render(
     <App sample={sample} logs={[]} sessionLabel="t" status="open" onCommand={(c) => cmds.push(c)} onRelabel={() => {}} />,
@@ -49,7 +49,22 @@ test("digits then Enter send a clamped vane %", async () => {
   await press(stdin, "4");
   await press(stdin, "5");
   await press(stdin, "\r");
+  expect(cmds).not.toContain("45"); // not sent until explicitly confirmed
+  await press(stdin, "y");
   expect(cmds).toContain("45");
+});
+
+test("a stray key after Enter cancels the manual vane (no accidental manual mode)", async () => {
+  const cmds: string[] = [];
+  const { stdin } = render(
+    <App sample={sample} logs={[]} sessionLabel="t" status="open" onCommand={(c) => cmds.push(c)} onRelabel={() => {}} />,
+  );
+  await tick();
+  await press(stdin, "4");
+  await press(stdin, "5");
+  await press(stdin, "\r");
+  await press(stdin, "x"); // something falls on the keyboard
+  expect(cmds).not.toContain("45"); // cancelled, never entered manual mode
 });
 
 test("l then typing then Enter relabels", async () => {
