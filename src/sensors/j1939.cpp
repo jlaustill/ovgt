@@ -3,6 +3,7 @@
 #include "j1939.h"
 #include "AppData.h"
 #include "j1939Decode.h"
+#include "j1939Health.h"
 #include "j1939Encode.h"
 
 // CAN2 = Teensy 4.1 pins 0 (RX) / 1 (TX). J1939 @ 250 kbps, 29-bit extended IDs.
@@ -13,7 +14,49 @@ static const uint32_t PGN_AMB         = 65270; // AMB — SPN 102 (byte 2, boost
 static const uint32_t PGN_OIL_TEMP    = 65262; // SPN 175 (bytes 3-4) + SPN 176 (bytes 5-6) — Engine Oil Temperature
 static const uint32_t PGN_FLUID_PRESS = 65263; // SPN 94 (byte 1) fuel, SPN 100 (byte 4) oil pressure
 static const uint32_t PGN_EEC2 = 61443; // EEC2 — SPN 91 throttle, SPN 92 load
-static const uint32_t PGN_ETC1 = 61442; // ETC1 — SPN 573 torque converter lockup
+static const uint32_t PGN_ETC1 = 61442; // ETC1 — SPN 573 TCC lockup, 191/161/522
+
+// J1939 RX-decode targets (received from engine/trans; distinct from OVGT's own TX).
+static const uint32_t PGN_EEC1     = 61444;
+static const uint32_t PGN_IC1      = 65270; // engine SA 0x00 (distinct from OVGT's own TX)
+static const uint32_t PGN_AMB65269 = 65269;
+static const uint32_t PGN_VEP1     = 65271;
+static const uint32_t PGN_ET1      = 65262;
+static const uint32_t PGN_EFLP1    = 65263;
+static const uint32_t PGN_ETC2     = 61445;
+
+static const uint8_t SA_ENGINE = 0x00;
+static const uint8_t SA_TRANS  = 0x03;
+
+// Unknown-PGN discovery inventory (ISR-updated, main-loop-read).
+struct UnknownPgn {
+    uint32_t pgn;
+    uint8_t  sa;
+    uint32_t count;
+    uint32_t firstMs;
+    uint32_t lastMs;
+    uint8_t  last[8];
+};
+static const uint8_t UNKNOWN_MAX = 32;
+static volatile UnknownPgn unknownTable[UNKNOWN_MAX];
+static volatile uint8_t unknownUsed = 0;
+static volatile uint32_t unknownDropped = 0;
+
+static void tallyUnknown(uint32_t pgn, uint8_t sa, const uint8_t *buf, uint32_t now) {
+    for (uint8_t i = 0; i < unknownUsed; i++) {
+        if (unknownTable[i].pgn == pgn && unknownTable[i].sa == sa) {
+            unknownTable[i].count++;
+            unknownTable[i].lastMs = now;
+            for (uint8_t b = 0; b < 8; b++) unknownTable[i].last[b] = buf[b];
+            return;
+        }
+    }
+    if (unknownUsed >= UNKNOWN_MAX) { unknownDropped++; return; }
+    uint8_t i = unknownUsed++;
+    unknownTable[i].pgn = pgn; unknownTable[i].sa = sa;
+    unknownTable[i].count = 1; unknownTable[i].firstMs = now; unknownTable[i].lastMs = now;
+    for (uint8_t b = 0; b < 8; b++) unknownTable[i].last[b] = buf[b];
+}
 
 // Standard turbo/intake PGNs (each carries our signal in bytes 1-2, turbo 2-4
 // siblings left 0xFF = not available). See docs/j1939-spn-mapping.md.
@@ -36,14 +79,83 @@ static void put16(uint8_t *buf, uint8_t pos, uint16_t value) {
 
 static void j1939Sniff(const CAN_message_t &msg) {
     uint32_t pgn = pgnFromCanId(msg.id);
-    if (pgn == PGN_EEC2) {
-        appData.acceleratorPedalPercent = decodeAcceleratorPedalPercent(msg.buf);
-        appData.engineLoadPercent = decodeEngineLoadPercent(msg.buf);
-        appData.lastEec2RxMs = millis();
-    } else if (pgn == PGN_ETC1) {
-        appData.torqueConverterLockupStatus = decodeTorqueConverterLockup(msg.buf);
-        appData.lastEtc1RxMs = millis();
+    uint8_t  sa  = saFromCanId(msg.id);
+    uint32_t now = millis();
+
+    if (sa == SA_ENGINE) {
+        switch (pgn) {
+            case PGN_EEC1:
+                appData.engineRpm = decodeEngineRpm(msg.buf);
+                appData.engineRpmRaw = j1939RawStatus2Byte((uint16_t)msg.buf[3] | ((uint16_t)msg.buf[4] << 8));
+                appData.driverDemandTorquePct = decodeDriverDemandTorquePct(msg.buf);
+                appData.actualTorquePct = decodeActualTorquePct(msg.buf);
+                appData.torqueRaw = j1939RawStatus1Byte(msg.buf[2]);
+                appData.lastEec1RxMs = now;
+                if (appData.engineOnlineAtMs == 0) appData.engineOnlineAtMs = now;
+                return;
+            case PGN_EEC2:
+                appData.acceleratorPedalPercent = decodeAcceleratorPedalPercent(msg.buf);
+                appData.engineLoadPercent = decodeEngineLoadPercent(msg.buf);
+                appData.lastEec2RxMs = now;
+                if (appData.engineOnlineAtMs == 0) appData.engineOnlineAtMs = now;
+                return;
+            case PGN_IC1:
+                appData.intakeAirTempC = decodeIntakeAirTempC(msg.buf);
+                appData.intakeAirRaw = j1939RawStatus1Byte(msg.buf[2]);
+                appData.j1939BoostKpa = decodeBoostKpa(msg.buf);
+                appData.boostRaw = j1939RawStatus1Byte(msg.buf[1]);
+                appData.lastIc1RxMs = now;
+                return;
+            case PGN_AMB65269:
+                appData.preTurboKpa = decodePreTurboKpa(msg.buf);
+                appData.preTurboRaw = j1939RawStatus1Byte(msg.buf[0]);
+                appData.lastAmbRxMs = now;
+                return;
+            case PGN_VEP1:
+                appData.systemVoltage = decodeSystemVoltage(msg.buf);
+                appData.systemVoltageRaw = j1939RawStatus2Byte((uint16_t)msg.buf[4] | ((uint16_t)msg.buf[5] << 8));
+                appData.lastVep1RxMs = now;
+                return;
+            case PGN_ET1:
+                appData.coolantTempC = decodeCoolantTempC(msg.buf);
+                appData.coolantRaw = j1939RawStatus1Byte(msg.buf[0]);
+                appData.engineOilTempC = decodeOilTempC(msg.buf);
+                appData.oilTempRaw = j1939RawStatus2Byte((uint16_t)msg.buf[2] | ((uint16_t)msg.buf[3] << 8));
+                appData.lastEt1RxMs = now;
+                return;
+            case PGN_EFLP1:
+                appData.oilPressureKpaJ1939 = decodeOilPressureKpa(msg.buf);
+                appData.oilPressRaw = j1939RawStatus1Byte(msg.buf[3]);
+                appData.lastEflRxMs = now;
+                return;
+        }
+    } else if (sa == SA_TRANS) {
+        switch (pgn) {
+            case PGN_ETC1:
+                appData.torqueConverterLockupStatus = decodeTorqueConverterLockup(msg.buf);
+                appData.outputShaftRpm = decodeOutputShaftRpm(msg.buf);
+                appData.outputShaftRaw = j1939RawStatus2Byte((uint16_t)msg.buf[1] | ((uint16_t)msg.buf[2] << 8));
+                appData.inputShaftRpm = decodeInputShaftRpm(msg.buf);
+                appData.inputShaftRaw = j1939RawStatus2Byte((uint16_t)msg.buf[5] | ((uint16_t)msg.buf[6] << 8));
+                appData.clutchSlipPct = decodeClutchSlipPct(msg.buf);
+                appData.clutchSlipRaw = j1939RawStatus1Byte(msg.buf[3]);
+                appData.lastEtc1RxMs = now;
+                if (appData.transOnlineAtMs == 0) appData.transOnlineAtMs = now;
+                return;
+            case PGN_ETC2:
+                appData.selectedGear = decodeSelectedGear(msg.buf);
+                appData.selectedGearRaw = j1939RawStatus1Byte(msg.buf[0]);
+                appData.currentGear = decodeCurrentGear(msg.buf);
+                appData.currentGearRaw = j1939RawStatus1Byte(msg.buf[3]);
+                appData.gearRatioMilli = decodeGearRatioMilli(msg.buf);
+                appData.gearRatioRaw = j1939RawStatus2Byte((uint16_t)msg.buf[1] | ((uint16_t)msg.buf[2] << 8));
+                appData.lastEtc2RxMs = now;
+                if (appData.transOnlineAtMs == 0) appData.transOnlineAtMs = now;
+                return;
+        }
     }
+    // Undecoded frame from any SA (skip our own SA 0x01 transmissions).
+    if (sa != SA) tallyUnknown(pgn, sa, msg.buf, now);
 }
 
 void J1939::Initialize() {
@@ -138,6 +250,20 @@ static void transmit1000ms() {
     memset(buf, 0xFF, 8);
     put16(buf, 0, j1939EncodeTurboPressureRaw((float)appData.compressorInputPressureHpaa));
     sendPgn(PGN_TURBO_INFO_3, buf);
+}
+
+uint8_t J1939::unknownCount() { return unknownUsed; }
+uint32_t J1939::unknownDroppedCount() { return unknownDropped; }
+
+bool J1939::unknownAt(uint8_t i, uint32_t &pgn, uint8_t &sa, uint32_t &count,
+                      uint32_t &firstMs, uint32_t &lastMs, uint8_t out8[8]) {
+    if (i >= unknownUsed) return false;
+    noInterrupts();
+    pgn = unknownTable[i].pgn; sa = unknownTable[i].sa; count = unknownTable[i].count;
+    firstMs = unknownTable[i].firstMs; lastMs = unknownTable[i].lastMs;
+    for (uint8_t b = 0; b < 8; b++) out8[b] = unknownTable[i].last[b];
+    interrupts();
+    return true;
 }
 
 void J1939::Loop() {
