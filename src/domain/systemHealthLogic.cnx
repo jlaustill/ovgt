@@ -16,4 +16,33 @@ scope SystemHealthLogic {
         if (srsr[0] = true) { return 1; }   // IPP_RESET_B     -> por
         return 0;                            // unknown
     }
+
+    u32 loopMax <- 0;
+    u32 loopSum <- 0;
+    u32 loopCount <- 0;
+
+    public void loopTimingReset() {
+        this.loopMax <- 0;
+        this.loopSum <- 0;
+        this.loopCount <- 0;
+    }
+
+    public void loopTimingRecord(u32 intervalMicros) {
+        if (intervalMicros > this.loopMax) {
+            this.loopMax <- intervalMicros;
+        }
+        this.loopSum <- this.loopSum + intervalMicros;
+        this.loopCount <- this.loopCount + 1;
+    }
+
+    public u32 loopTimingMax() {
+        return this.loopMax;
+    }
+
+    public u32 loopTimingAvg() {
+        if (this.loopCount = 0) {
+            return 0;
+        }
+        return this.loopSum / this.loopCount;
+    }
 }

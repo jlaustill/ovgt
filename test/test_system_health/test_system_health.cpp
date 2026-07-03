@@ -23,9 +23,28 @@ void test_decode_precedence_wdog_over_por(void) {
     TEST_ASSERT_EQUAL_UINT8(4, SystemHealthLogic_decodeResetCause(srsr));
 }
 
+void test_loop_timing_max_and_avg(void) {
+    SystemHealthLogic_loopTimingReset();
+    SystemHealthLogic_loopTimingRecord(10000);
+    SystemHealthLogic_loopTimingRecord(12000);
+    SystemHealthLogic_loopTimingRecord(11000);
+    TEST_ASSERT_EQUAL_UINT32(12000, SystemHealthLogic_loopTimingMax());
+    TEST_ASSERT_EQUAL_UINT32(11000, SystemHealthLogic_loopTimingAvg()); // (10000+12000+11000)/3
+}
+
+void test_loop_timing_reset_clears(void) {
+    SystemHealthLogic_loopTimingReset();
+    SystemHealthLogic_loopTimingRecord(50000);
+    SystemHealthLogic_loopTimingReset();
+    TEST_ASSERT_EQUAL_UINT32(0, SystemHealthLogic_loopTimingMax());
+    TEST_ASSERT_EQUAL_UINT32(0, SystemHealthLogic_loopTimingAvg());
+}
+
 int main(int, char **) {
     UNITY_BEGIN();
     RUN_TEST(test_decode_each_cause);
     RUN_TEST(test_decode_precedence_wdog_over_por);
+    RUN_TEST(test_loop_timing_max_and_avg);
+    RUN_TEST(test_loop_timing_reset_clears);
     return UNITY_END();
 }

@@ -43,3 +43,31 @@ uint8_t SystemHealthLogic_decodeResetCause(uint32_t srsr) {
     }
     return 0;
 }
+static uint32_t SystemHealthLogic_loopMax = 0U;
+static uint32_t SystemHealthLogic_loopSum = 0U;
+static uint32_t SystemHealthLogic_loopCount = 0U;
+
+void SystemHealthLogic_loopTimingReset(void) {
+    SystemHealthLogic_loopMax = 0U;
+    SystemHealthLogic_loopSum = 0U;
+    SystemHealthLogic_loopCount = 0U;
+}
+
+void SystemHealthLogic_loopTimingRecord(uint32_t intervalMicros) {
+    if (intervalMicros > SystemHealthLogic_loopMax) {
+        SystemHealthLogic_loopMax = intervalMicros;
+    }
+    SystemHealthLogic_loopSum = SystemHealthLogic_loopSum + intervalMicros;
+    SystemHealthLogic_loopCount = SystemHealthLogic_loopCount + 1U;
+}
+
+uint32_t SystemHealthLogic_loopTimingMax(void) {
+    return SystemHealthLogic_loopMax;
+}
+
+uint32_t SystemHealthLogic_loopTimingAvg(void) {
+    if (SystemHealthLogic_loopCount == 0) {
+        return 0;
+    }
+    return SystemHealthLogic_loopSum / SystemHealthLogic_loopCount;
+}

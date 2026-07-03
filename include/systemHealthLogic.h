@@ -15,6 +15,10 @@ extern "C" {
 
 /* Function prototypes */
 uint8_t SystemHealthLogic_decodeResetCause(uint32_t srsr);
+void SystemHealthLogic_loopTimingReset(void);
+void SystemHealthLogic_loopTimingRecord(uint32_t intervalMicros);
+uint32_t SystemHealthLogic_loopTimingMax(void);
+uint32_t SystemHealthLogic_loopTimingAvg(void);
 
 #ifdef __cplusplus
 }
