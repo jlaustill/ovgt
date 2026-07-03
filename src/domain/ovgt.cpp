@@ -12,6 +12,7 @@
 #include "sensors/cotSettle.h"
 #include "storage/fram.h"
 #include "sensors/j1939.h"
+#include "sensors/j1939Health.h"
 #include "control/boostController.h"
 #include "control/exhaustBrakeController.h"
 
@@ -40,6 +41,24 @@ uint32_t ovgt::cyclesAdc = 0;
 uint32_t ovgt::cyclesBoost = 0;
 uint32_t ovgt::cyclesActuator = 0;
 uint32_t ovgt::cyclesDebug = 0;
+
+// Per-signal 5-state status from AppData freshness + raw J1939 status.
+static J1939Status jStatus(bool domainOnline, uint32_t lastSeen, uint32_t timeoutMs, uint8_t rawStatus) {
+    return j1939SignalStatus(domainOnline, lastSeen, millis(), timeoutMs, (J1939RawStatus)rawStatus);
+}
+static bool okJ(bool domainOnline, uint32_t lastSeen, uint32_t timeoutMs, uint8_t rawStatus) {
+    return jStatus(domainOnline, lastSeen, timeoutMs, rawStatus) == J1939_STATUS_OK;
+}
+// Emit a decoded J1939 value, or null when its status is not "ok" this sample.
+static void addUintOrNull(const char *key, bool ok, uint32_t v) {
+    if (ok) Json_addUint(key, v); else Json_addNull(key);
+}
+static void addIntOrNull(const char *key, bool ok, int32_t v) {
+    if (ok) Json_addInt(key, v); else Json_addNull(key);
+}
+static void addFloat2OrNull(const char *key, bool ok, float v) {
+    if (ok) Json_addFloat2(key, v); else Json_addNull(key);
+}
 
 void ovgt::handleDebug() {
     if (count % 10 != 0) return;  // emit at 10 Hz (loop runs at 100 Hz)
@@ -82,6 +101,30 @@ void ovgt::handleDebug() {
     Json_addUint("dem_pct", appData.actuatorDemandedPosition);
     Json_addUint("pos_pct", appData.actuatorReportedPosition);
     Json_addBool("brake", appData.exhaustBrakeActive);
+
+    // Decoded J1939 broadcast signals (value when status ok, else null).
+    uint32_t nowMs = millis();
+    bool eng = j1939DomainOnline(appData.lastEec1RxMs, appData.lastEec2RxMs, nowMs, 1000);
+    bool trn = j1939DomainOnline(appData.lastEtc1RxMs, appData.lastEtc2RxMs, nowMs, 1000);
+    addUintOrNull("engine_rpm",        okJ(eng, appData.lastEec1RxMs, 1000, appData.engineRpmRaw),   appData.engineRpm);
+    addIntOrNull("torque_pct",         okJ(eng, appData.lastEec1RxMs, 1000, appData.torqueRaw),      appData.actualTorquePct);
+    addIntOrNull("torque_demand_pct",  okJ(eng, appData.lastEec1RxMs, 1000, appData.torqueRaw),      appData.driverDemandTorquePct);
+    addUintOrNull("accel_pct",         okJ(eng, appData.lastEec2RxMs, 1000, J1939_OK),               appData.acceleratorPedalPercent);
+    addUintOrNull("load_pct",          okJ(eng, appData.lastEec2RxMs, 1000, J1939_OK),               appData.engineLoadPercent);
+    addIntOrNull("intake_air_c",       okJ(eng, appData.lastIc1RxMs, 1500, appData.intakeAirRaw),    appData.intakeAirTempC);
+    addUintOrNull("j1939_boost_kpa",   okJ(eng, appData.lastIc1RxMs, 1500, appData.boostRaw),        appData.j1939BoostKpa);
+    addUintOrNull("preturbo_kpa",      okJ(eng, appData.lastAmbRxMs, 3000, appData.preTurboRaw),     appData.preTurboKpa);
+    addFloat2OrNull("system_v",        okJ(eng, appData.lastVep1RxMs, 3000, appData.systemVoltageRaw), appData.systemVoltage);
+    addIntOrNull("coolant_c",          okJ(eng, appData.lastEt1RxMs, 3000, appData.coolantRaw),      appData.coolantTempC);
+    addIntOrNull("oil_c",              okJ(eng, appData.lastEt1RxMs, 3000, appData.oilTempRaw),      appData.engineOilTempC);
+    addUintOrNull("oil_kpa",           okJ(eng, appData.lastEflRxMs, 1500, appData.oilPressRaw),     appData.oilPressureKpaJ1939);
+    addUintOrNull("tcc",               okJ(trn, appData.lastEtc1RxMs, 1000, J1939_OK),               appData.torqueConverterLockupStatus);
+    addUintOrNull("trans_out_rpm",     okJ(trn, appData.lastEtc1RxMs, 1000, appData.outputShaftRaw), appData.outputShaftRpm);
+    addUintOrNull("trans_in_rpm",      okJ(trn, appData.lastEtc1RxMs, 1000, appData.inputShaftRaw),  appData.inputShaftRpm);
+    addUintOrNull("clutch_slip_pct",   okJ(trn, appData.lastEtc1RxMs, 1000, appData.clutchSlipRaw),  appData.clutchSlipPct);
+    addUintOrNull("gear_sel",          okJ(trn, appData.lastEtc2RxMs, 1000, appData.selectedGearRaw), appData.selectedGear);
+    addUintOrNull("gear_cur",          okJ(trn, appData.lastEtc2RxMs, 1000, appData.currentGearRaw), appData.currentGear);
+    addUintOrNull("gear_ratio",        okJ(trn, appData.lastEtc2RxMs, 1000, appData.gearRatioRaw),   appData.gearRatioMilli);
     Json_end();
     for (uint32_t i = 0; i < Json_len(); i++) Serial.write(Json_at(i));
     Serial.write('\n');

@@ -105,6 +105,12 @@ scope Json {
         this.putByte('"');
     }
 
+    // Emits key:null — used when a J1939 signal's status is not "ok" this sample.
+    public void addNull(const string<24> k) {
+        this.key(k);
+        this.putRaw("null");
+    }
+
     // Fixed 2-decimal float via scale-to-int (rounded). Telemetry needs 1-2 dp.
     public void addFloat2(const string<24> k, f32 v) {
         this.key(k);

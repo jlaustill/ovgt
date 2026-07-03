@@ -23,6 +23,7 @@ void Json_addUint(const char* k, uint32_t v);
 void Json_addInt(const char* k, int32_t v);
 void Json_addBool(const char* k, bool v);
 void Json_addStr(const char* k, const char* v);
+void Json_addNull(const char* k);
 void Json_addFloat2(const char* k, float v);
 void Json_end(void);
 uint8_t Json_at(uint32_t i);

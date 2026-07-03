@@ -116,6 +116,11 @@ void Json_addStr(const char* k, const char* v) {
     Json_putByte((uint8_t)'"');
 }
 
+void Json_addNull(const char* k) {
+    Json_key(k);
+    Json_putRaw("null");
+}
+
 void Json_addFloat2(const char* k, float v) {
     Json_key(k);
     float x = v;
