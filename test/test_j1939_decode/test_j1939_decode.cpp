@@ -57,6 +57,22 @@ void test_engine_load(void) {
     TEST_ASSERT_EQUAL_UINT8(100, decodeEngineLoadPercent(buf));
 }
 
+void test_engine_rpm(void) {
+    // 1500 rpm / 0.125 = 12000 = 0x2EE0 -> LE byte3=0xE0, byte4=0x2E
+    uint8_t buf[8] = {0, 0, 0, 0xE0, 0x2E, 0, 0, 0};
+    TEST_ASSERT_EQUAL_UINT16(1500, decodeEngineRpm(buf));
+}
+
+void test_driver_demand_torque(void) {
+    uint8_t buf[8] = {0, 150, 0, 0, 0, 0, 0, 0};  // 150 - 125 = 25
+    TEST_ASSERT_EQUAL_INT8(25, decodeDriverDemandTorquePct(buf));
+}
+
+void test_actual_torque_negative(void) {
+    uint8_t buf[8] = {0, 0, 100, 0, 0, 0, 0, 0};  // 100 - 125 = -25 (motoring)
+    TEST_ASSERT_EQUAL_INT8(-25, decodeActualTorquePct(buf));
+}
+
 int main(int, char **) {
     UNITY_BEGIN();
     RUN_TEST(test_pgn_eec2_pdu2);
@@ -69,5 +85,8 @@ int main(int, char **) {
     RUN_TEST(test_accelerator_full);
     RUN_TEST(test_accelerator_half);
     RUN_TEST(test_engine_load);
+    RUN_TEST(test_engine_rpm);
+    RUN_TEST(test_driver_demand_torque);
+    RUN_TEST(test_actual_torque_negative);
     return UNITY_END();
 }

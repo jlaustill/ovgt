@@ -26,3 +26,16 @@ uint8_t decodeAcceleratorPedalPercent(const uint8_t *buf) {
 uint8_t decodeEngineLoadPercent(const uint8_t *buf) {
     return buf[2];  // 1 %/bit, range already 0-250
 }
+
+uint16_t decodeEngineRpm(const uint8_t *buf) {
+    uint16_t raw = (uint16_t)buf[3] | ((uint16_t)buf[4] << 8);
+    return (uint16_t)(raw * 0.125f + 0.5f);
+}
+
+int8_t decodeDriverDemandTorquePct(const uint8_t *buf) {
+    return (int8_t)((int)buf[1] - 125);
+}
+
+int8_t decodeActualTorquePct(const uint8_t *buf) {
+    return (int8_t)((int)buf[2] - 125);
+}

@@ -19,4 +19,11 @@ uint8_t decodeAcceleratorPedalPercent(const uint8_t *buf);
 // EEC2 (PGN 61443) byte 3 -> SPN 92 Engine Percent Load (1 %/bit, 0-250).
 uint8_t decodeEngineLoadPercent(const uint8_t *buf);
 
+// EEC1 (PGN 61444) bytes 3-4 LE -> SPN 190 Engine Speed (0.125 rpm/bit).
+uint16_t decodeEngineRpm(const uint8_t *buf);
+// EEC1 byte 1 -> SPN 512 Driver's Demand Percent Torque (1 %/bit, offset -125).
+int8_t decodeDriverDemandTorquePct(const uint8_t *buf);
+// EEC1 byte 2 -> SPN 513 Actual Engine Percent Torque (1 %/bit, offset -125).
+int8_t decodeActualTorquePct(const uint8_t *buf);
+
 #endif
