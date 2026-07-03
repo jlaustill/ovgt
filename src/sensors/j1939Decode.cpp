@@ -50,3 +50,8 @@ int16_t decodeOilTempC(const uint8_t *buf) {
     return (int16_t)(raw * 0.03125f - 273.0f + (raw ? 0.5f : 0.0f));
 }
 uint16_t decodeOilPressureKpa(const uint8_t *buf) { return (uint16_t)buf[3] * 4; }
+
+float decodeSystemVoltage(const uint8_t *buf) {
+    uint16_t raw = (uint16_t)buf[4] | ((uint16_t)buf[5] << 8);
+    return raw * 0.05f;
+}

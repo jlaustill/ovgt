@@ -40,4 +40,7 @@ int16_t decodeOilTempC(const uint8_t *buf);
 // EFL/P1 (PGN 65263) byte 3 -> SPN 100 Engine Oil Pressure (4 kPa/bit).
 uint16_t decodeOilPressureKpa(const uint8_t *buf);
 
+// VEP1 (PGN 65271) bytes 4-5 LE -> SPN 168 Battery Potential (0.05 V/bit).
+float decodeSystemVoltage(const uint8_t *buf);
+
 #endif

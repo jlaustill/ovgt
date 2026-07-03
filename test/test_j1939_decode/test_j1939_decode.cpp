@@ -104,6 +104,12 @@ void test_oil_pressure(void) {
     TEST_ASSERT_EQUAL_UINT16(300, decodeOilPressureKpa(buf));
 }
 
+void test_system_voltage(void) {
+    // 13.8 V / 0.05 = 276 = 0x0114 -> LE byte4=0x14, byte5=0x01
+    uint8_t buf[8] = {0, 0, 0, 0, 0x14, 0x01, 0, 0};
+    TEST_ASSERT_FLOAT_WITHIN(0.001f, 13.8f, decodeSystemVoltage(buf));
+}
+
 int main(int, char **) {
     UNITY_BEGIN();
     RUN_TEST(test_pgn_eec2_pdu2);
@@ -125,5 +131,6 @@ int main(int, char **) {
     RUN_TEST(test_coolant_temp);
     RUN_TEST(test_oil_temp);
     RUN_TEST(test_oil_pressure);
+    RUN_TEST(test_system_voltage);
     return UNITY_END();
 }
