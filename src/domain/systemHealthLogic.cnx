@@ -1,0 +1,19 @@
+// Pure health-telemetry math: reset-cause decode, loop-timing, Vin conversion.
+// No hardware access here so it transpiles to C mode and is native-testable.
+// The hardware module systemHealth.cnx feeds real register/ADC values in.
+scope SystemHealthLogic {
+
+    // SRC_SRSR bit -> stable numeric code (see plan bit-map table).
+    public u8 decodeResetCause(u32 srsr) {
+        if (srsr[4] = true) { return 4; }   // WDOG_RST_B      -> wdog
+        if (srsr[7] = true) { return 5; }   // WDOG3_RST_B     -> wdog3
+        if (srsr[8] = true) { return 6; }   // TEMPSENSE_RST_B -> tempsense
+        if (srsr[1] = true) { return 2; }   // LOCKUP_SYSRESETREQ -> lockup
+        if (srsr[3] = true) { return 3; }   // IPP_USER_RESET_B -> pin
+        if (srsr[6] = true) { return 7; }   // JTAG_SW_RST     -> jtag
+        if (srsr[5] = true) { return 7; }   // JTAG_RST_B      -> jtag
+        if (srsr[2] = true) { return 8; }   // CSU_RESET_B     -> csu
+        if (srsr[0] = true) { return 1; }   // IPP_RESET_B     -> por
+        return 0;                            // unknown
+    }
+}

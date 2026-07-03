@@ -10,7 +10,11 @@ def transpile_cnext():
     .cnx it includes (e.g. can_tx_queue.cnx). Generated .c/.cpp land next
     to the .cnx; headers go to include/ via --header-out.
     """
-    entries = [Path("src/display/actuator.cnx"), Path("src/domain/json.cnx")]
+    entries = [
+        Path("src/display/actuator.cnx"),
+        Path("src/domain/json.cnx"),
+        Path("src/domain/systemHealthLogic.cnx"),
+    ]
     for entry in entries:
         if not entry.exists():
             continue
