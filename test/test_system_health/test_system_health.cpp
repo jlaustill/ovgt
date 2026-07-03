@@ -40,11 +40,29 @@ void test_loop_timing_reset_clears(void) {
     TEST_ASSERT_EQUAL_UINT32(0, SystemHealthLogic_loopTimingAvg());
 }
 
+void test_vin_raw_to_millivolts(void) {
+    // Half-scale (raw 512) through a 1/6 divider: 512*3300/1023*6 ~= 9911 mV.
+    TEST_ASSERT_UINT32_WITHIN(15, 9911, SystemHealthLogic_rawToMillivolts(512));
+    TEST_ASSERT_EQUAL_UINT32(0, SystemHealthLogic_rawToMillivolts(0));
+}
+
+void test_vin_min_tracks_and_sentinel(void) {
+    SystemHealthLogic_vinReset();
+    TEST_ASSERT_EQUAL_INT32(-1, SystemHealthLogic_vinMinMillivolts()); // no samples yet
+    SystemHealthLogic_vinRecord(600); // ~11.6 V
+    SystemHealthLogic_vinRecord(500); // ~9.7 V  (the dip)
+    SystemHealthLogic_vinRecord(620);
+    int32_t mv = SystemHealthLogic_vinMinMillivolts();
+    TEST_ASSERT_INT32_WITHIN(40, 9677, mv); // min corresponds to raw 500
+}
+
 int main(int, char **) {
     UNITY_BEGIN();
     RUN_TEST(test_decode_each_cause);
     RUN_TEST(test_decode_precedence_wdog_over_por);
     RUN_TEST(test_loop_timing_max_and_avg);
     RUN_TEST(test_loop_timing_reset_clears);
+    RUN_TEST(test_vin_raw_to_millivolts);
+    RUN_TEST(test_vin_min_tracks_and_sentinel);
     return UNITY_END();
 }

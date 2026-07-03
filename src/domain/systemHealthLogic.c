@@ -71,3 +71,35 @@ uint32_t SystemHealthLogic_loopTimingAvg(void) {
     }
     return SystemHealthLogic_loopSum / SystemHealthLogic_loopCount;
 }
+static bool SystemHealthLogic_vinSeen = false;
+static uint32_t SystemHealthLogic_vinMin = 0U;
+
+uint32_t SystemHealthLogic_rawToMillivolts(uint32_t rawAdc) {
+    uint32_t atPin = rawAdc * 3300U / 1023U;
+    return atPin * 6;
+}
+
+void SystemHealthLogic_vinReset(void) {
+    SystemHealthLogic_vinSeen = false;
+    SystemHealthLogic_vinMin = 0U;
+}
+
+void SystemHealthLogic_vinRecord(uint32_t rawAdc) {
+    uint32_t mv = SystemHealthLogic_rawToMillivolts(rawAdc);
+    bool first = SystemHealthLogic_vinSeen == false;
+    if (first == true) {
+        SystemHealthLogic_vinMin = mv;
+        SystemHealthLogic_vinSeen = true;
+    } else {
+        if (mv < SystemHealthLogic_vinMin) {
+            SystemHealthLogic_vinMin = mv;
+        }
+    }
+}
+
+int32_t SystemHealthLogic_vinMinMillivolts(void) {
+    if (SystemHealthLogic_vinSeen == false) {
+        return -1;
+    }
+    return ((SystemHealthLogic_vinMin) & 0xFFFFFFFFU);
+}

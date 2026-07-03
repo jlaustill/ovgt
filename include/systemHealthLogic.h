@@ -19,6 +19,10 @@ void SystemHealthLogic_loopTimingReset(void);
 void SystemHealthLogic_loopTimingRecord(uint32_t intervalMicros);
 uint32_t SystemHealthLogic_loopTimingMax(void);
 uint32_t SystemHealthLogic_loopTimingAvg(void);
+uint32_t SystemHealthLogic_rawToMillivolts(uint32_t rawAdc);
+void SystemHealthLogic_vinReset(void);
+void SystemHealthLogic_vinRecord(uint32_t rawAdc);
+int32_t SystemHealthLogic_vinMinMillivolts(void);
 
 #ifdef __cplusplus
 }

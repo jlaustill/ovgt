@@ -45,4 +45,41 @@ scope SystemHealthLogic {
         }
         return this.loopSum / this.loopCount;
     }
+
+    // Vin divider ratio: the resistor network passes 1/DIVIDER_RATIO of Vin to
+    // the ADC pin. 100k/20k -> ratio 6. ADC is 10-bit (0..1023) at 3.3 V ref.
+    const u32 VIN_DIVIDER_RATIO <- 6;
+
+    bool vinSeen <- false;
+    u32 vinMin <- 0;
+
+    public u32 rawToMillivolts(u32 rawAdc) {
+        u32 atPin <- rawAdc * 3300 / 1023;
+        return atPin * this.VIN_DIVIDER_RATIO;
+    }
+
+    public void vinReset() {
+        this.vinSeen <- false;
+        this.vinMin <- 0;
+    }
+
+    public void vinRecord(u32 rawAdc) {
+        u32 mv <- this.rawToMillivolts(rawAdc);
+        bool first <- this.vinSeen = false;
+        if (first = true) {
+            this.vinMin <- mv;
+            this.vinSeen <- true;
+        } else {
+            if (mv < this.vinMin) {
+                this.vinMin <- mv;
+            }
+        }
+    }
+
+    public i32 vinMinMillivolts() {
+        if (this.vinSeen = false) {
+            return -1;
+        }
+        return this.vinMin[0, 32];
+    }
 }
