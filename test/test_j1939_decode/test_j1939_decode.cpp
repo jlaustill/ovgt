@@ -73,6 +73,21 @@ void test_actual_torque_negative(void) {
     TEST_ASSERT_EQUAL_INT8(-25, decodeActualTorquePct(buf));
 }
 
+void test_intake_air_temp(void) {
+    uint8_t buf[8] = {0, 0, 80, 0, 0, 0, 0, 0};  // 80 - 40 = 40 C
+    TEST_ASSERT_EQUAL_INT16(40, decodeIntakeAirTempC(buf));
+}
+
+void test_boost_kpa(void) {
+    uint8_t buf[8] = {0, 100, 0, 0, 0, 0, 0, 0};  // 100 * 2 = 200 kPa
+    TEST_ASSERT_EQUAL_UINT16(200, decodeBoostKpa(buf));
+}
+
+void test_preturbo_kpa(void) {
+    uint8_t buf[8] = {200, 0, 0, 0, 0, 0, 0, 0};  // 200 * 0.5 = 100 kPa
+    TEST_ASSERT_EQUAL_UINT16(100, decodePreTurboKpa(buf));
+}
+
 int main(int, char **) {
     UNITY_BEGIN();
     RUN_TEST(test_pgn_eec2_pdu2);
@@ -88,5 +103,8 @@ int main(int, char **) {
     RUN_TEST(test_engine_rpm);
     RUN_TEST(test_driver_demand_torque);
     RUN_TEST(test_actual_torque_negative);
+    RUN_TEST(test_intake_air_temp);
+    RUN_TEST(test_boost_kpa);
+    RUN_TEST(test_preturbo_kpa);
     return UNITY_END();
 }

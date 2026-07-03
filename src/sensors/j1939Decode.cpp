@@ -39,3 +39,7 @@ int8_t decodeDriverDemandTorquePct(const uint8_t *buf) {
 int8_t decodeActualTorquePct(const uint8_t *buf) {
     return (int8_t)((int)buf[2] - 125);
 }
+
+int16_t decodeIntakeAirTempC(const uint8_t *buf) { return (int16_t)((int)buf[2] - 40); }
+uint16_t decodeBoostKpa(const uint8_t *buf)      { return (uint16_t)buf[1] * 2; }
+uint16_t decodePreTurboKpa(const uint8_t *buf)   { return (uint16_t)(buf[0] * 0.5f + 0.5f); }

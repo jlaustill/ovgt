@@ -26,4 +26,11 @@ int8_t decodeDriverDemandTorquePct(const uint8_t *buf);
 // EEC1 byte 2 -> SPN 513 Actual Engine Percent Torque (1 %/bit, offset -125).
 int8_t decodeActualTorquePct(const uint8_t *buf);
 
+// IC1 (PGN 65270) byte 2 -> SPN 105 Intake Manifold 1 Temp (1 C/bit, offset -40).
+int16_t decodeIntakeAirTempC(const uint8_t *buf);
+// IC1 byte 1 -> SPN 102 Boost Pressure (2 kPa/bit).
+uint16_t decodeBoostKpa(const uint8_t *buf);
+// AMB (PGN 65269) byte 0 -> SPN 108 Barometric/pre-turbo pressure (0.5 kPa/bit).
+uint16_t decodePreTurboKpa(const uint8_t *buf);
+
 #endif
