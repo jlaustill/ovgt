@@ -127,6 +127,22 @@ void test_clutch_slip(void) {
     TEST_ASSERT_EQUAL_UINT8(10, decodeClutchSlipPct(buf));
 }
 
+void test_selected_gear_raw(void) {
+    uint8_t buf[8] = {0x7E, 0, 0, 0, 0, 0, 0, 0};  // 0x7E = 1st (Allison)
+    TEST_ASSERT_EQUAL_UINT8(0x7E, decodeSelectedGear(buf));
+}
+
+void test_current_gear_raw(void) {
+    uint8_t buf[8] = {0, 0, 0, 0x7D, 0, 0, 0, 0};  // byte3 = 0x7D = Neutral
+    TEST_ASSERT_EQUAL_UINT8(0x7D, decodeCurrentGear(buf));
+}
+
+void test_gear_ratio_milli(void) {
+    // 1.000 ratio -> 1000 = 0x03E8 -> LE byte1=0xE8, byte2=0x03
+    uint8_t buf[8] = {0, 0xE8, 0x03, 0, 0, 0, 0, 0};
+    TEST_ASSERT_EQUAL_UINT16(1000, decodeGearRatioMilli(buf));
+}
+
 int main(int, char **) {
     UNITY_BEGIN();
     RUN_TEST(test_pgn_eec2_pdu2);
@@ -152,5 +168,8 @@ int main(int, char **) {
     RUN_TEST(test_output_shaft_rpm);
     RUN_TEST(test_input_shaft_rpm);
     RUN_TEST(test_clutch_slip);
+    RUN_TEST(test_selected_gear_raw);
+    RUN_TEST(test_current_gear_raw);
+    RUN_TEST(test_gear_ratio_milli);
     return UNITY_END();
 }

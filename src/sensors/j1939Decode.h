@@ -50,4 +50,11 @@ uint16_t decodeInputShaftRpm(const uint8_t *buf);
 // ETC1 byte 3 -> SPN 522 Percent Clutch Slip (0.4 %/bit). SAE pos 4.
 uint8_t decodeClutchSlipPct(const uint8_t *buf);
 
+// ETC2 (PGN 61445) byte 0 -> SPN 524 Selected Gear (raw; Allison range-coded).
+uint8_t decodeSelectedGear(const uint8_t *buf);
+// ETC2 byte 3 -> SPN 523 Current Gear (raw; Allison range-coded).
+uint8_t decodeCurrentGear(const uint8_t *buf);
+// ETC2 bytes 1-2 LE -> SPN 526 Actual Gear Ratio (0.001/bit -> integer milli).
+uint16_t decodeGearRatioMilli(const uint8_t *buf);
+
 #endif

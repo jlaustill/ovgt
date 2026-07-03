@@ -69,3 +69,9 @@ uint16_t decodeInputShaftRpm(const uint8_t *buf) {
 uint8_t decodeClutchSlipPct(const uint8_t *buf) {
     return (uint8_t)(buf[3] * 0.4f + 0.5f);
 }
+
+uint8_t decodeSelectedGear(const uint8_t *buf) { return buf[0]; }
+uint8_t decodeCurrentGear(const uint8_t *buf)  { return buf[3]; }
+uint16_t decodeGearRatioMilli(const uint8_t *buf) {
+    return (uint16_t)buf[1] | ((uint16_t)buf[2] << 8);
+}
