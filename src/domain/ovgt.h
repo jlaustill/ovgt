@@ -10,6 +10,7 @@ class ovgt
         static uint32_t cyclesActuator;
         static uint32_t cyclesDebug;
         static void handleDebug();
+        static void handleJ1939Diag();
 
     public:
         static void setup();

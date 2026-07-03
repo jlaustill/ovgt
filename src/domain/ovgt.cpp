@@ -130,6 +130,41 @@ void ovgt::handleDebug() {
     Serial.write('\n');
 }
 
+void ovgt::handleJ1939Diag() {
+    if (count % 100 != 0) return;  // 1 Hz (loop runs at 100 Hz)
+    uint32_t now = millis();
+    bool eng = j1939DomainOnline(appData.lastEec1RxMs, appData.lastEec2RxMs, now, 1000);
+    bool trn = j1939DomainOnline(appData.lastEtc1RxMs, appData.lastEtc2RxMs, now, 1000);
+
+    Json_begin();
+    Json_addStr("type", "d");
+    Json_addUint("t_ms", now);
+    Json_addBool("engine_online", eng);
+    Json_addBool("trans_online", trn);
+    Json_addUint("engine_up_ms", appData.engineOnlineAtMs);
+    Json_addUint("trans_up_ms", appData.transOnlineAtMs);
+    Json_addStr("h_engine_rpm",  j1939StatusName(jStatus(eng, appData.lastEec1RxMs, 1000, appData.engineRpmRaw)));
+    Json_addStr("h_torque",      j1939StatusName(jStatus(eng, appData.lastEec1RxMs, 1000, appData.torqueRaw)));
+    Json_addStr("h_intake_air",  j1939StatusName(jStatus(eng, appData.lastIc1RxMs, 1500, appData.intakeAirRaw)));
+    Json_addStr("h_boost",       j1939StatusName(jStatus(eng, appData.lastIc1RxMs, 1500, appData.boostRaw)));
+    Json_addStr("h_preturbo",    j1939StatusName(jStatus(eng, appData.lastAmbRxMs, 3000, appData.preTurboRaw)));
+    Json_addStr("h_system_v",    j1939StatusName(jStatus(eng, appData.lastVep1RxMs, 3000, appData.systemVoltageRaw)));
+    Json_addStr("h_coolant",     j1939StatusName(jStatus(eng, appData.lastEt1RxMs, 3000, appData.coolantRaw)));
+    Json_addStr("h_oil_c",       j1939StatusName(jStatus(eng, appData.lastEt1RxMs, 3000, appData.oilTempRaw)));
+    Json_addStr("h_oil_kpa",     j1939StatusName(jStatus(eng, appData.lastEflRxMs, 1500, appData.oilPressRaw)));
+    Json_addStr("h_trans_out",   j1939StatusName(jStatus(trn, appData.lastEtc1RxMs, 1000, appData.outputShaftRaw)));
+    Json_addStr("h_trans_in",    j1939StatusName(jStatus(trn, appData.lastEtc1RxMs, 1000, appData.inputShaftRaw)));
+    Json_addStr("h_clutch_slip", j1939StatusName(jStatus(trn, appData.lastEtc1RxMs, 1000, appData.clutchSlipRaw)));
+    Json_addStr("h_gear_sel",    j1939StatusName(jStatus(trn, appData.lastEtc2RxMs, 1000, appData.selectedGearRaw)));
+    Json_addStr("h_gear_cur",    j1939StatusName(jStatus(trn, appData.lastEtc2RxMs, 1000, appData.currentGearRaw)));
+    Json_addStr("h_gear_ratio",  j1939StatusName(jStatus(trn, appData.lastEtc2RxMs, 1000, appData.gearRatioRaw)));
+    Json_addUint("unk_n", J1939::unknownCount());
+    Json_addUint("unk_dropped", J1939::unknownDroppedCount());
+    Json_end();
+    for (uint32_t i = 0; i < Json_len(); i++) Serial.write(Json_at(i));
+    Serial.write('\n');
+}
+
 
 void ovgt::setup() {
     Serial.begin(115200);
@@ -210,6 +245,7 @@ void ovgt::loop() {
 
     t0 = ARM_DWT_CYCCNT;
     handleDebug();
+    handleJ1939Diag();
     t1 = ARM_DWT_CYCCNT;
     cyclesDebug += t1 - t0;
 
