@@ -88,6 +88,22 @@ void test_preturbo_kpa(void) {
     TEST_ASSERT_EQUAL_UINT16(100, decodePreTurboKpa(buf));
 }
 
+void test_coolant_temp(void) {
+    uint8_t buf[8] = {130, 0, 0, 0, 0, 0, 0, 0};  // 130 - 40 = 90 C
+    TEST_ASSERT_EQUAL_INT16(90, decodeCoolantTempC(buf));
+}
+
+void test_oil_temp(void) {
+    // 100 C -> (100+273)/0.03125 = 11936 = 0x2EA0 -> LE byte2=0xA0, byte3=0x2E
+    uint8_t buf[8] = {0, 0, 0xA0, 0x2E, 0, 0, 0, 0};
+    TEST_ASSERT_EQUAL_INT16(100, decodeOilTempC(buf));
+}
+
+void test_oil_pressure(void) {
+    uint8_t buf[8] = {0, 0, 0, 75, 0, 0, 0, 0};  // 75 * 4 = 300 kPa
+    TEST_ASSERT_EQUAL_UINT16(300, decodeOilPressureKpa(buf));
+}
+
 int main(int, char **) {
     UNITY_BEGIN();
     RUN_TEST(test_pgn_eec2_pdu2);
@@ -106,5 +122,8 @@ int main(int, char **) {
     RUN_TEST(test_intake_air_temp);
     RUN_TEST(test_boost_kpa);
     RUN_TEST(test_preturbo_kpa);
+    RUN_TEST(test_coolant_temp);
+    RUN_TEST(test_oil_temp);
+    RUN_TEST(test_oil_pressure);
     return UNITY_END();
 }

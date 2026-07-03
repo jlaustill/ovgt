@@ -43,3 +43,10 @@ int8_t decodeActualTorquePct(const uint8_t *buf) {
 int16_t decodeIntakeAirTempC(const uint8_t *buf) { return (int16_t)((int)buf[2] - 40); }
 uint16_t decodeBoostKpa(const uint8_t *buf)      { return (uint16_t)buf[1] * 2; }
 uint16_t decodePreTurboKpa(const uint8_t *buf)   { return (uint16_t)(buf[0] * 0.5f + 0.5f); }
+
+int16_t decodeCoolantTempC(const uint8_t *buf) { return (int16_t)((int)buf[0] - 40); }
+int16_t decodeOilTempC(const uint8_t *buf) {
+    uint16_t raw = (uint16_t)buf[2] | ((uint16_t)buf[3] << 8);
+    return (int16_t)(raw * 0.03125f - 273.0f + (raw ? 0.5f : 0.0f));
+}
+uint16_t decodeOilPressureKpa(const uint8_t *buf) { return (uint16_t)buf[3] * 4; }

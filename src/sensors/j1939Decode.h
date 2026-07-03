@@ -33,4 +33,11 @@ uint16_t decodeBoostKpa(const uint8_t *buf);
 // AMB (PGN 65269) byte 0 -> SPN 108 Barometric/pre-turbo pressure (0.5 kPa/bit).
 uint16_t decodePreTurboKpa(const uint8_t *buf);
 
+// ET1 (PGN 65262) byte 0 -> SPN 110 Coolant Temp (1 C/bit, offset -40).
+int16_t decodeCoolantTempC(const uint8_t *buf);
+// ET1 bytes 2-3 LE -> SPN 175 Engine Oil Temp 1 (0.03125 C/bit, offset -273).
+int16_t decodeOilTempC(const uint8_t *buf);
+// EFL/P1 (PGN 65263) byte 3 -> SPN 100 Engine Oil Pressure (4 kPa/bit).
+uint16_t decodeOilPressureKpa(const uint8_t *buf);
+
 #endif
