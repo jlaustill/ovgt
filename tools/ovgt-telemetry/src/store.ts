@@ -1,5 +1,10 @@
 import { type Db, MongoClient } from "mongodb";
-import type { SettleEvent, TelemetrySample } from "./types";
+import type {
+  J1939DiagDoc,
+  J1939UnknownDoc,
+  SettleEvent,
+  TelemetrySample,
+} from "./types";
 
 export interface SessionDoc {
   _id: string;
@@ -30,6 +35,8 @@ export class MongoStore {
     this.db = db;
     await db.collection("telemetry").createIndex({ sessionId: 1, t_ms: 1 });
     await db.collection("settle_events").createIndex({ sessionId: 1, t_ms: 1 });
+    await db.collection("j1939_diag").createIndex({ sessionId: 1, t_ms: 1 });
+    await db.collection("j1939_unknown").createIndex({ sessionId: 1, t_ms: 1 });
 
     const sessionId = `${host}-${Date.now()}`;
     this.sessionId = sessionId;
@@ -48,6 +55,16 @@ export class MongoStore {
     await this.db.collection("settle_events").insertOne({ ...event, ts: new Date(), sessionId: this.sessionId });
   }
 
+  async insertJ1939Diag(doc: J1939DiagDoc): Promise<void> {
+    if (!this.db) return;
+    await this.db.collection("j1939_diag").insertOne({ ...doc, ts: new Date(), sessionId: this.sessionId });
+  }
+
+  async insertJ1939Unknown(doc: J1939UnknownDoc): Promise<void> {
+    if (!this.db) return;
+    await this.db.collection("j1939_unknown").insertOne({ ...doc, ts: new Date(), sessionId: this.sessionId });
+  }
+
   // Fire-and-forget writes for the live path. These never reject — a failed
   // write is reported through onWriteError on transition, not per sample — so a
   // Mongo outage neither crashes the process (unhandled rejection) nor blocks
@@ -58,6 +75,14 @@ export class MongoStore {
 
   recordSettle(event: SettleEvent): void {
     this.guardWrite(this.insertSettle(event));
+  }
+
+  recordJ1939Diag(doc: J1939DiagDoc): void {
+    this.guardWrite(this.insertJ1939Diag(doc));
+  }
+
+  recordJ1939Unknown(doc: J1939UnknownDoc): void {
+    this.guardWrite(this.insertJ1939Unknown(doc));
   }
 
   private guardWrite(write: Promise<void>): void {

@@ -17,6 +17,13 @@ const settle: SettleEvent = {
   type: "s", t_ms: 200, tau_s: 5.2, settle_s: 8.1, step_c: 42.3,
   cot_slope_c_s: 0.05, boost_slope_psi_s: 0.01, settle_timer_s: 2.3,
 };
+const diag = {
+  type: "d" as const, t_ms: 300, engine_online: true, trans_online: false,
+  engine_up_ms: 4200, trans_up_ms: 0, h_engine_rpm: "ok", h_system_v: "absent",
+};
+const unknown = {
+  type: "u" as const, t_ms: 400, pgn: 65247, sa: 0, cnt: 5, hz: 20, last: "FFFF03FFFFFFFFFF",
+};
 
 afterAll(async () => {
   const client = new MongoClient(uri);
@@ -68,4 +75,25 @@ test("connect creates a session and inserts telemetry + settle with sessionId", 
   expect(sdoc?.tau_s).toBeCloseTo(5.2);
   expect(sess?.label).toBe("relabeled");
   expect(sess?.endTs).toBeInstanceOf(Date);
+});
+
+test("stores j1939 diag + unknown docs with sessionId and ts", async () => {
+  const store = new MongoStore(uri, dbName);
+  const sessionId = await store.connect("j1939-drive", "testhost");
+  await store.insertJ1939Diag(diag);
+  await store.insertJ1939Unknown(unknown);
+  await store.close();
+
+  const client = new MongoClient(uri);
+  await client.connect();
+  const db = client.db(dbName);
+  const ddoc = await db.collection("j1939_diag").findOne({ sessionId });
+  const udoc = await db.collection("j1939_unknown").findOne({ sessionId });
+  await client.close();
+
+  expect(ddoc?.engine_online).toBe(true);
+  expect(ddoc?.h_engine_rpm).toBe("ok");
+  expect(ddoc?.ts).toBeInstanceOf(Date);
+  expect(udoc?.pgn).toBe(65247);
+  expect(udoc?.last).toBe("FFFF03FFFFFFFFFF");
 });

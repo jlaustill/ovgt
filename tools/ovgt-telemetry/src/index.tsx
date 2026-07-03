@@ -90,6 +90,10 @@ async function main(): Promise<void> {
       } else if (parsed.kind === "settle") {
         await store?.insertSettle(parsed.event);
         s++;
+      } else if (parsed.kind === "j1939diag") {
+        await store?.insertJ1939Diag(parsed.doc);
+      } else if (parsed.kind === "j1939unknown") {
+        await store?.insertJ1939Unknown(parsed.doc);
       } else {
         logs++;
       }
@@ -115,6 +119,10 @@ async function main(): Promise<void> {
     } else if (parsed.kind === "settle") {
       feed.emit("settle", parsed.event);
       store?.recordSettle(parsed.event);
+    } else if (parsed.kind === "j1939diag") {
+      store?.recordJ1939Diag(parsed.doc);
+    } else if (parsed.kind === "j1939unknown") {
+      store?.recordJ1939Unknown(parsed.doc);
     } else if (parsed.text !== "") {
       feed.emit("log", parsed.text);
     }
