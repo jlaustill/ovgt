@@ -1,0 +1,83 @@
+#include <Arduino.h>
+#include "SystemHealthConfig.h"
+#include "systemHealthLogic.cnx"
+
+// IMXRT1062 System Reset Controller: reset status + retained scratch registers.
+register SRC @ 0x400F8000 {
+    SRSR: u32 rw @ 0x08,   // reset status; write-1-to-clear
+    GPR9: u32 rw @ 0x40,   // retained across warm reset, zeroed on POR (GPR5 is core-reserved)
+}
+
+// IMXRT1062 Watchdog 1 (16-bit registers).
+register WDOG1 @ 0x400B8000 {
+    WCR: u16 rw @ 0x00,    // control
+    WSR: u16 rw @ 0x02,    // service (feed): 0x5555 then 0xAAAA
+}
+
+scope SystemHealth {
+    u8 causeCode <- 0;
+    u32 bootCounter <- 0;
+    u32 lastFeedMicros <- 0;
+    bool feedSeen <- false;
+
+    void enableWatchdog() {
+        u16 wcr <- 0x0030;              // reset default: SRS + WDA held high
+        wcr[2] <- true;                 // WDE: enable watchdog
+        wcr[1] <- true;                 // WDBG: suspend while halted under debugger
+        wcr[8, 8] <- OVGT_WATCHDOG_WT;  // WT: (WT+1)*0.5 s timeout
+        WDOG1.WCR <- wcr;               // single write (WDE/WT are write-once)
+    }
+
+    public void init() {
+        u32 srsr <- SRC.SRSR;
+        this.causeCode <- SystemHealthLogic.decodeResetCause(srsr);
+        SRC.SRSR <- srsr;               // write-1-to-clear the latched bits
+
+        u32 boots <- SRC.GPR9 + 1;      // retained boot counter
+        SRC.GPR9 <- boots;
+        this.bootCounter <- boots;
+
+        SystemHealthLogic.loopTimingReset();
+        SystemHealthLogic.vinReset();
+        this.feedSeen <- false;
+
+        if (OVGT_WATCHDOG_ENABLED = 1) {
+            this.enableWatchdog();
+        }
+    }
+
+    public void feed() {
+        u32 now <- micros();
+        bool first <- this.feedSeen = false;
+        if (first = true) {
+            this.feedSeen <- true;
+        } else {
+            u32 interval <- now - this.lastFeedMicros;   // u32 wrap is correct for micros()
+            SystemHealthLogic.loopTimingRecord(interval);
+        }
+        this.lastFeedMicros <- now;
+
+        if (OVGT_WATCHDOG_ENABLED = 1) {
+            WDOG1.WSR <- 0x5555;
+            WDOG1.WSR <- 0xAAAA;
+        }
+    }
+
+    public void sampleSupply() {
+        if (OVGT_VIN_ENABLED = 1) {
+            u32 raw <- analogRead(OVGT_VIN_ADC_PIN);   // analogRead is 0..1023
+            SystemHealthLogic.vinRecord(raw);
+        }
+    }
+
+    public void windowReset() {
+        SystemHealthLogic.loopTimingReset();
+        SystemHealthLogic.vinReset();
+    }
+
+    public u8 resetCauseCode() { return this.causeCode; }
+    public u32 bootCount() { return this.bootCounter; }
+    public u32 loopMicrosMax() { return SystemHealthLogic.loopTimingMax(); }
+    public u32 loopMicrosAvg() { return SystemHealthLogic.loopTimingAvg(); }
+    public i32 supplyMillivolts() { return SystemHealthLogic.vinMinMillivolts(); }
+}

@@ -14,6 +14,7 @@ def transpile_cnext():
         Path("src/display/actuator.cnx"),
         Path("src/domain/json.cnx"),
         Path("src/domain/systemHealthLogic.cnx"),
+        Path("src/domain/systemHealth.cnx"),
     ]
     for entry in entries:
         if not entry.exists():
