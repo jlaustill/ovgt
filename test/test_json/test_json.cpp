@@ -60,6 +60,14 @@ void test_capacity_no_overflow(void) {
     Json_addFloat2("cot_slope_c_s", -999.99f);
     Json_addFloat2("boost_slope_psi_s", -999.99f);
     Json_addFloat2("settle_timer_s", 9999.99f);
+    Json_addStr("reset_cause", "tempsense");
+    Json_addUint("boot_count", 4294967295u);
+    Json_addBool("crash", true);
+    Json_addBool("pg", true);
+    Json_addInt("vin_mv", 60000);
+    Json_addUint("loop_us_max", 4294967295u);
+    Json_addUint("loop_us_avg", 4294967295u);
+    Json_addUint("setup_ms", 4294967295u);
     Json_end();
     TEST_ASSERT_FALSE(Json_overflowed());
     TEST_ASSERT_TRUE(Json_len() < 640u);

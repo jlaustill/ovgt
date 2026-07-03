@@ -2,6 +2,7 @@
 #include "ovgt.h"
 #include <actuator.hpp>
 #include <json.h>
+#include <systemHealth.h>
 #include "AppData.h"
 #include "sensors/adcSensors.h"
 #include "sensors/titSensor.h"
@@ -15,6 +16,20 @@
 #include "sensors/j1939Health.h"
 #include "control/boostController.h"
 #include "control/exhaustBrakeController.h"
+
+static const char *resetCauseName(uint8_t code) {
+    switch (code) {
+        case 1: return "por";
+        case 2: return "lockup";
+        case 3: return "pin";
+        case 4: return "wdog";
+        case 5: return "wdog3";
+        case 6: return "tempsense";
+        case 7: return "jtag";
+        case 8: return "csu";
+        default: return "unknown";
+    }
+}
 
 elapsedMillis loopElapsed;
 elapsedMicros adcElapsed;
@@ -36,6 +51,8 @@ static bool ceSettled = false;
 static elapsedMicros cotSampleDt;
 
 volatile uint32_t ovgt::count;
+static bool bootCrashPresent = false;
+static uint32_t bootSetupMillis = 0;
 
 uint32_t ovgt::cyclesAdc = 0;
 uint32_t ovgt::cyclesBoost = 0;
@@ -100,6 +117,14 @@ void ovgt::handleDebug() {
     Json_addBool("ce_settled", ceSettled);
     Json_addUint("dem_pct", appData.actuatorDemandedPosition);
     Json_addUint("pos_pct", appData.actuatorReportedPosition);
+    Json_addStr("reset_cause", resetCauseName(SystemHealth_resetCauseCode()));
+    Json_addUint("boot_count", SystemHealth_bootCount());
+    Json_addBool("crash", bootCrashPresent);
+    Json_addBool("pg", appData.pgFault);
+    Json_addInt("vin_mv", SystemHealth_supplyMillivolts());
+    Json_addUint("loop_us_max", SystemHealth_loopMicrosMax());
+    Json_addUint("loop_us_avg", SystemHealth_loopMicrosAvg());
+    Json_addUint("setup_ms", bootSetupMillis);
     Json_addBool("brake", appData.exhaustBrakeActive);
 
     // Decoded J1939 broadcast signals (value when status ok, else null).
@@ -128,6 +153,7 @@ void ovgt::handleDebug() {
     Json_end();
     for (uint32_t i = 0; i < Json_len(); i++) Serial.write(Json_at(i));
     Serial.write('\n');
+    SystemHealth_windowReset();
 }
 
 void ovgt::handleJ1939Diag() {
@@ -200,10 +226,13 @@ void ovgt::handleJ1939Unknown() {
 void ovgt::setup() {
     Serial.begin(115200);
 
-    // Diagnostic: after a fault-induced reset the Teensy core retains a crash
-    // report in no-init RAM. Printing it on boot tells us the fault type and
-    // the program counter/address that crashed. If resets keep happening but
-    // this stays blank, the cause is power/brownout, not a code fault.
+    elapsedMillis setupTimer;
+    SystemHealth_init();
+
+    // Capture whether a hard-fault crash report survived the reset (C++ core
+    // object, so read here) before printing clears it. The bool rides telemetry;
+    // the full text stays on serial until Phase 2 routes it into Mongo.
+    bootCrashPresent = (bool)CrashReport;
     if (CrashReport) {
         Serial.println("=== CRASH REPORT ===");
         Serial.print(CrashReport);
@@ -223,17 +252,26 @@ void ovgt::setup() {
     }
 
     AdcSensors::Initialize();
+    SystemHealth_feed();
     TitSensor::Initialize();
+    SystemHealth_feed();
     CotSensor::Initialize();
+    SystemHealth_feed();
     // CitSensor::Initialize();
     // TotSensor::Initialize();
     Fram::Initialize();
+    SystemHealth_feed();
     BoostController::Initialize();
+    SystemHealth_feed();
     cotSettleInit(cotSettleState);
     ExhaustBrakeController::Initialize();
+    SystemHealth_feed();
     Actuator_Initialize();
+    SystemHealth_feed();
     J1939::Initialize();
+    SystemHealth_feed();
 
+    bootSetupMillis = setupTimer;
     Serial.println("Setup complete");
 }
 
@@ -273,6 +311,9 @@ void ovgt::loop() {
 
     uint32_t t0, t1;
     count++;
+
+    SystemHealth_feed();
+    SystemHealth_sampleSupply();
 
     t0 = ARM_DWT_CYCCNT;
     handleDebug();
