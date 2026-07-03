@@ -20,14 +20,14 @@
 //   for (uint32_t i = 0; i < Json_len(); i++) Serial.write(Json_at(i));
 //   Serial.write('\n');
 /* Scope: Json */
-static char Json_buf[641] = "";
+static char Json_buf[1281] = "";
 static uint32_t Json_cursor = 0;
 static bool Json_full = false;
 static bool Json_needComma = false;
 
 void Json_putByte(uint8_t c) {
     uint32_t i = Json_cursor;
-    bool room = i < 639;
+    bool room = i < 1279;
     if (room == true) {
         Json_buf[i] = c;
         Json_cursor = i + 1U;

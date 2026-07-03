@@ -9,14 +9,14 @@
 //   for (uint32_t i = 0; i < Json_len(); i++) Serial.write(Json_at(i));
 //   Serial.write('\n');
 scope Json {
-    string<640> buf <- "";   // explicit init required (#1019); sized for the worst-case telemetry object
+    string<1280> buf <- "";  // explicit init required (#1019); sized for the worst-case telemetry object (J1939 fields expand the 10Hz line)
     u32 cursor;
     bool full;
     bool needComma;
 
     void putByte(u8 c) {
         u32 i <- this.cursor;
-        bool room <- i < 639;
+        bool room <- i < 1279;
         if (room = true) {
             this.buf[i] <- c;
             this.cursor <- i + 1;
