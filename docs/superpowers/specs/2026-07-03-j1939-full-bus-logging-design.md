@@ -169,6 +169,11 @@ actual frame, so it can never fire prematurely.
   entries); overflow increments a dropped counter also reported. Retaining `last` payload +
   changing-byte hints is enough to seed later reverse-engineering.
 
+**Encoding note:** the firmware NDJSON builder (`json.cnx`) is flat (no nested objects/arrays), so
+the implementation realizes this as flat keys — `health` becomes `h_<signal>` keys on the `type:"d"`
+line, and `unknown` becomes one `type:"u"` line per PGN (→ its own `j1939_unknown` collection). Same
+information, flatter shape. See the implementation plan for the exact field list.
+
 ## Data model (MongoDB `ovgt`)
 
 - `telemetry` — gains the ~16 new fields automatically (value or `null`). No schema migration.
