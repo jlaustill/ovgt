@@ -43,4 +43,11 @@ uint16_t decodeOilPressureKpa(const uint8_t *buf);
 // VEP1 (PGN 65271) bytes 4-5 LE -> SPN 168 Battery Potential (0.05 V/bit).
 float decodeSystemVoltage(const uint8_t *buf);
 
+// ETC1 (PGN 61442) bytes 1-2 LE -> SPN 191 Output Shaft Speed (0.125 rpm/bit).
+uint16_t decodeOutputShaftRpm(const uint8_t *buf);
+// ETC1 bytes 5-6 LE -> SPN 161 Input Shaft Speed (0.125 rpm/bit). SAE pos 6-7.
+uint16_t decodeInputShaftRpm(const uint8_t *buf);
+// ETC1 byte 3 -> SPN 522 Percent Clutch Slip (0.4 %/bit). SAE pos 4.
+uint8_t decodeClutchSlipPct(const uint8_t *buf);
+
 #endif

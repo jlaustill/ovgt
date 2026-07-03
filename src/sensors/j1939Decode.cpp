@@ -55,3 +55,17 @@ float decodeSystemVoltage(const uint8_t *buf) {
     uint16_t raw = (uint16_t)buf[4] | ((uint16_t)buf[5] << 8);
     return raw * 0.05f;
 }
+
+uint16_t decodeOutputShaftRpm(const uint8_t *buf) {
+    uint16_t raw = (uint16_t)buf[1] | ((uint16_t)buf[2] << 8);
+    return (uint16_t)(raw * 0.125f + 0.5f);
+}
+
+uint16_t decodeInputShaftRpm(const uint8_t *buf) {
+    uint16_t raw = (uint16_t)buf[5] | ((uint16_t)buf[6] << 8);
+    return (uint16_t)(raw * 0.125f + 0.5f);
+}
+
+uint8_t decodeClutchSlipPct(const uint8_t *buf) {
+    return (uint8_t)(buf[3] * 0.4f + 0.5f);
+}

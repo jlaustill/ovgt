@@ -110,6 +110,23 @@ void test_system_voltage(void) {
     TEST_ASSERT_FLOAT_WITHIN(0.001f, 13.8f, decodeSystemVoltage(buf));
 }
 
+void test_output_shaft_rpm(void) {
+    // 2000 rpm / 0.125 = 16000 = 0x3E80 -> LE byte1=0x80, byte2=0x3E
+    uint8_t buf[8] = {0, 0x80, 0x3E, 0, 0, 0, 0, 0};
+    TEST_ASSERT_EQUAL_UINT16(2000, decodeOutputShaftRpm(buf));
+}
+
+void test_input_shaft_rpm(void) {
+    // 2400 rpm / 0.125 = 19200 = 0x4B00 -> LE byte5=0x00, byte6=0x4B (SAE pos 6-7)
+    uint8_t buf[8] = {0, 0, 0, 0, 0, 0x00, 0x4B, 0};
+    TEST_ASSERT_EQUAL_UINT16(2400, decodeInputShaftRpm(buf));
+}
+
+void test_clutch_slip(void) {
+    uint8_t buf[8] = {0, 0, 0, 25, 0, 0, 0, 0};  // 25 * 0.4 = 10 %
+    TEST_ASSERT_EQUAL_UINT8(10, decodeClutchSlipPct(buf));
+}
+
 int main(int, char **) {
     UNITY_BEGIN();
     RUN_TEST(test_pgn_eec2_pdu2);
@@ -132,5 +149,8 @@ int main(int, char **) {
     RUN_TEST(test_oil_temp);
     RUN_TEST(test_oil_pressure);
     RUN_TEST(test_system_voltage);
+    RUN_TEST(test_output_shaft_rpm);
+    RUN_TEST(test_input_shaft_rpm);
+    RUN_TEST(test_clutch_slip);
     return UNITY_END();
 }
