@@ -103,20 +103,48 @@ extras, any proprietary frames) surface via the inventory layer and can be promo
 else JSON `null`. The FF/FE/absent distinction lives on the 1 Hz diagnostic line (a `null` in
 `telemetry` means "not usable this sample; see `j1939_diag`").
 
+## Broadcast-online detection (avoid pre-unlock false anomalies)
+
+The CM848D is silent on J1939 until the OCT gateway unlocks broadcasting (proprietary CLIP EF00
+sequence). Before unlock, engine signals are legitimately missing — flagging them `absent`/`err`
+would spew false anomalies every boot and force hand-filtering of every analysis. We gate on the
+presence of **native-only PGNs**:
+
+- **`engine_online`** — true once **EEC1 (61444) or EEC2 (61443)** is seen within timeout. OCT
+  re-broadcasts IC1/ET1/EFL-P1/CCVS on SA `0x00` but does **not** synthesize EEC1/EEC2, so their
+  presence uniquely means the real engine datalink is live and unlocked. (OVGT already receives
+  EEC2 today, proving the signal works.)
+- **`trans_online`** — true once ETC1 (61442) or ETC2 (61445), SA `0x03`, is seen within timeout.
+  The Allison broadcasts whenever powered, so this trips near-immediately; handled symmetrically.
+
+Each expected signal is tagged with its domain (engine / trans). A one-shot handshake watch (the
+EF00/TP CLIP unlock exchange) was rejected: it needs transport-protocol reassembly, is fragile,
+and only proves unlock was *attempted*, not that data is *flowing*. A real EEC1 frame is ground
+truth.
+
 ## Signal-health / error detection
 
-Per SAE J1939-71 SLOT conventions, classify each decoded SPN from its raw field:
+Per SAE J1939-71 SLOT conventions, classify each decoded SPN's raw field:
 
 | data length | `na` (not available) | `err` (error indicator) | else |
 |---|---|---|---|
 | 1 byte | `0xFF` | `0xFE` | `ok` |
 | 2 byte (LE) | `raw ≥ 0xFF00` | `0xFE00 ≤ raw ≤ 0xFEFF` | `ok` |
 
-A PGN is `absent` when `millis() − lastSeenMs > timeout`, with `timeout = max(3 × broadcastRate,
-1000 ms)`. `absent` takes precedence over the last-known SPN status.
+Full per-signal status, gated by the signal's domain-online state:
 
-**Statuses:** `ok` | `na` | `err` | `absent` (4-state). Tracked per expected SPN in `appData`
-alongside the value.
+| domain state | seen within timeout? | status |
+|---|---|---|
+| offline (pre-unlock) | — | **`waiting`** — expected-missing, NOT an anomaly |
+| online | no (never seen, or went stale) | `absent` — real dropout |
+| online | yes | `ok` / `na` / `err` (per table above) |
+
+`timeout = max(3 × broadcastRate, 1000 ms)`. `waiting` absorbs the entire pre-unlock window
+silently; `absent`/`err` only ever fire once the domain is genuinely online.
+
+**Statuses:** `ok` | `na` | `err` | `absent` | `waiting` (5-state). Tracked per expected SPN in
+`appData` alongside the value. Unknown-PGN logging is *not* gated — an unknown only logs on an
+actual frame, so it can never fire prematurely.
 
 ## Diagnostic message (`type:"d"`, 1 Hz)
 
@@ -124,11 +152,18 @@ alongside the value.
 {
   "type": "d",
   "t_ms": 1234567,
+  "engine_online": true,
+  "engine_online_t_ms": 4200,
+  "trans_online": true,
+  "trans_online_t_ms": 180,
   "health": { "engine_rpm": "ok", "system_v": "absent", "gear_sel": "na", ... },
   "unknown": [ { "pgn": 65247, "sa": 0, "cnt": 50, "hz": 20, "last": "FFFF03FFFFFFFFFF" }, ... ]
 }
 ```
-- `health` — object keyed by JSON signal key → 4-state status. One entry per expected signal.
+- `engine_online` / `trans_online` — domain-online flags (see Broadcast-online detection).
+  `*_online_t_ms` — uptime at which each domain first came online this boot (`null` until then);
+  also a free record of how long after boot OCT takes to unlock, drive over drive.
+- `health` — object keyed by JSON signal key → 5-state status. One entry per expected signal.
 - `unknown` — array of undecoded PGNs seen since boot (or since last emit): PGN, source address,
   cumulative count, approximate rate, most-recent 8-byte payload as hex. Fixed cap (e.g. 32
   entries); overflow increments a dropped counter also reported. Retaining `last` payload +
@@ -150,10 +185,11 @@ Acceptable; note for retention.
   add `spnStatus1Byte(raw)` / `spnStatus2Byte(raw)` classifiers.
 - `src/sensors/j1939.cpp` — extend `j1939Sniff` (`:37-47`): decode PGNs 61444, 65270, 65269,
   65271, 65262, 65263, 61445; extend 61442 (add 191/161/522) and 61443 (91/92 already). Stamp
-  `lastSeenMs` per PGN. `else` branch → inventory tally. Add absent-timeout scan + a 1 Hz
+  `lastSeenMs` per PGN; update `engine_online`/`trans_online` gates + their came-online uptimes
+  on the native gating PGNs. `else` branch → inventory tally. Add absent-timeout scan + a 1 Hz
   diagnostic builder invoked from `J1939::Loop` (`:143`).
-- `appData` — add the ~16 value fields + their status enums + PGN `lastSeen` timestamps +
-  inventory table.
+- `appData` — add the ~16 value fields + their 5-state status enums + PGN `lastSeen` timestamps +
+  domain-online flags/timestamps + inventory table. Each expected signal tagged with its domain.
 - `src/domain/ovgt.cpp` — add the new keys to the 10 Hz JSON body (`:61-87`); add a `type:"d"`
   builder emitted at 1 Hz (reuse the `count % N` gate pattern at `:45`).
 
@@ -170,6 +206,10 @@ Acceptable; note for retention.
 - `test/test_j1939_decode/` — add cases per new decoder: nominal value, `0xFF` → `na`,
   `0xFE`/`0xFExx` → `err`, plus the 2-byte boundary (`0xFEFF` err vs `0xFF00` na). Extend
   `test/test_j1939_encode/` only if any TX changes (none planned).
+- Domain-online gate + health state machine (pure logic, native-testable): pre-unlock signals read
+  `waiting`; after a gating frame (EEC1/EEC2 → engine, ETC1/ETC2 → trans) an unseen signal reads
+  `absent`, a fresh one `ok`/`na`/`err`; `*_online_t_ms` stamps the first gating frame. Extract this
+  logic into a pure module so it can be unit-tested without CAN hardware.
 - Host: `tools/ovgt-telemetry` vitest — `parse.ts` routes `type:"d"`; `store.ts` writes
   `j1939_diag` (needs local MongoDB per project CLAUDE.md).
 - On-truck smoke: one short drive → confirm `engine_rpm` tracks throttle, `system_v` ~13–14 V,
@@ -195,8 +235,9 @@ Acceptable; note for retention.
 ## Open questions / risks
 
 - **Bus availability at OVGT's tap:** engine J1939 depends on the OCT gateway having unlocked
-  broadcasting. If a drive shows engine signals `absent`, that's a real finding (the health layer
-  will flag it), not a bug — but confirm on the smoke drive.
+  broadcasting. Handled by the `engine_online` gate — pre-unlock reads `waiting`, and if a whole
+  drive shows `engine_online: false`, that's a real finding (OCT never unlocked), not false noise.
+  Confirm the gate trips on the smoke drive.
 - **1 Hz voltage may be too slow** to catch a fast brown-out transient; if H2 is inconclusive,
   consider whether any higher-rate voltage source exists (else accept as a known limit).
 - **Inventory table sizing** vs number of distinct undecoded PGNs — start at 32 + dropped-counter.
