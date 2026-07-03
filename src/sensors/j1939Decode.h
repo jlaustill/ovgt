@@ -7,6 +7,9 @@
 // For PDU2 (PF >= 240) the PGN includes the PS byte; for PDU1 it does not.
 uint32_t pgnFromCanId(uint32_t canId);
 
+// Extract the source address (low byte) from a 29-bit J1939 CAN identifier.
+uint8_t saFromCanId(uint32_t canId);
+
 // ETC1 (PGN 61442) byte 1 bits 3-4 -> SPN 573 Torque Converter Lockup (0-3).
 uint8_t decodeTorqueConverterLockup(const uint8_t *buf);
 

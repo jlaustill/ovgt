@@ -9,6 +9,10 @@ uint32_t pgnFromCanId(uint32_t canId) {
     return (uint32_t)pf << 8;
 }
 
+uint8_t saFromCanId(uint32_t canId) {
+    return (uint8_t)(canId & 0xFF);
+}
+
 uint8_t decodeTorqueConverterLockup(const uint8_t *buf) {
     return (uint8_t)((buf[0] >> 2) & 0x03);
 }
