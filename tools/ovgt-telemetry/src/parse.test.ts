@@ -26,6 +26,28 @@ test("parses a settle line", () => {
   }
 });
 
+test("routes a type d diagnostic line", () => {
+  const r = parseLine(
+    '{"type":"d","t_ms":1,"engine_online":true,"trans_online":false,"engine_up_ms":4200,"trans_up_ms":0,"h_engine_rpm":"ok","h_system_v":"absent"}',
+  );
+  expect(r.kind).toBe("j1939diag");
+  if (r.kind === "j1939diag") {
+    expect(r.doc.engine_online).toBe(true);
+    expect(r.doc.h_engine_rpm).toBe("ok");
+  }
+});
+
+test("routes a type u unknown-PGN line", () => {
+  const r = parseLine(
+    '{"type":"u","t_ms":1,"pgn":65247,"sa":0,"cnt":5,"hz":20,"last":"FFFF03FFFFFFFFFF"}',
+  );
+  expect(r.kind).toBe("j1939unknown");
+  if (r.kind === "j1939unknown") {
+    expect(r.doc.pgn).toBe(65247);
+    expect(r.doc.last).toBe("FFFF03FFFFFFFFFF");
+  }
+});
+
 test("non-JSON banner becomes a log line", () => {
   const r = parseLine("Setup complete");
   expect(r).toEqual({ kind: "log", text: "Setup complete" });

@@ -33,7 +33,32 @@ export interface SettleEvent {
   settle_timer_s: number;
 }
 
+// 1 Hz J1939 diagnostic line: online flags + per-signal health (h_<signal>).
+export interface J1939DiagDoc {
+  type: "d";
+  t_ms: number;
+  engine_online: boolean;
+  trans_online: boolean;
+  engine_up_ms: number;
+  trans_up_ms: number;
+  // h_<signal> health keys ("ok"|"na"|"err"|"absent"|"waiting") + unk_n/unk_dropped
+  [key: string]: unknown;
+}
+
+// One line per undecoded PGN discovered on the bus.
+export interface J1939UnknownDoc {
+  type: "u";
+  t_ms: number;
+  pgn: number;
+  sa: number;
+  cnt: number;
+  hz: number;
+  last: string;
+}
+
 export type ParsedLine =
   | { kind: "telemetry"; sample: TelemetrySample }
   | { kind: "settle"; event: SettleEvent }
+  | { kind: "j1939diag"; doc: J1939DiagDoc }
+  | { kind: "j1939unknown"; doc: J1939UnknownDoc }
   | { kind: "log"; text: string };
