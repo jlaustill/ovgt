@@ -11,6 +11,7 @@ class ovgt
         static uint32_t cyclesDebug;
         static void handleDebug();
         static void handleJ1939Diag();
+        static void handleJ1939Unknown();
 
     public:
         static void setup();

@@ -165,6 +165,37 @@ void ovgt::handleJ1939Diag() {
     Serial.write('\n');
 }
 
+void ovgt::handleJ1939Unknown() {
+    if (count % 100 != 0) return;  // 1 Hz, aligned with the diagnostic line
+    static uint8_t cursor = 0;
+    uint8_t n = J1939::unknownCount();
+    if (n == 0) return;
+    uint8_t emit = n < 4 ? n : 4;  // up to 4/s -> full 32-entry table in 8 s
+    for (uint8_t k = 0; k < emit; k++) {
+        uint8_t idx = (uint8_t)((cursor + k) % n);
+        uint32_t pgn, cnt, firstMs, lastMs; uint8_t sa, b[8];
+        if (!J1939::unknownAt(idx, pgn, sa, cnt, firstMs, lastMs, b)) continue;
+        static const char HEXD[] = "0123456789ABCDEF";
+        char hex[17];
+        for (uint8_t j = 0; j < 8; j++) { hex[j*2] = HEXD[b[j] >> 4]; hex[j*2+1] = HEXD[b[j] & 0xF]; }
+        hex[16] = '\0';
+        uint32_t spanMs = lastMs - firstMs;
+        uint32_t hz = spanMs > 0 ? (cnt * 1000) / spanMs : 0;
+        Json_begin();
+        Json_addStr("type", "u");
+        Json_addUint("t_ms", (uint32_t)millis());
+        Json_addUint("pgn", pgn);
+        Json_addUint("sa", sa);
+        Json_addUint("cnt", cnt);
+        Json_addUint("hz", hz);
+        Json_addStr("last", hex);
+        Json_end();
+        for (uint32_t i = 0; i < Json_len(); i++) Serial.write(Json_at(i));
+        Serial.write('\n');
+    }
+    cursor = (uint8_t)((cursor + emit) % n);
+}
+
 
 void ovgt::setup() {
     Serial.begin(115200);
@@ -246,6 +277,7 @@ void ovgt::loop() {
     t0 = ARM_DWT_CYCCNT;
     handleDebug();
     handleJ1939Diag();
+    handleJ1939Unknown();
     t1 = ARM_DWT_CYCCNT;
     cyclesDebug += t1 - t0;
 
