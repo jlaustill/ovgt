@@ -6,6 +6,27 @@ static uint8_t clampVane(float vane, uint8_t lo, uint8_t hi) {
     return (uint8_t)(vane + 0.5f);
 }
 
+uint8_t vaneOpenCapForBoost(float boostPsi, const BoostConfig &cfg) {
+    if (cfg.vaneCapSchedule == nullptr || cfg.vaneCapScheduleLen == 0) {
+        return cfg.vaneOpenCapPercent;
+    }
+    const VaneCapPoint *pts = cfg.vaneCapSchedule;
+    uint8_t n = cfg.vaneCapScheduleLen;
+    if (boostPsi <= pts[0].boostPsi) return pts[0].capPercent;
+    if (boostPsi >= pts[n - 1].boostPsi) return pts[n - 1].capPercent;
+    for (uint8_t i = 1; i < n; i++) {
+        if (boostPsi <= pts[i].boostPsi) {
+            float pLow = pts[i - 1].boostPsi;
+            float pHigh = pts[i].boostPsi;
+            float cLow = (float)pts[i - 1].capPercent;
+            float cHigh = (float)pts[i].capPercent;
+            float cap = cLow + (boostPsi - pLow) / (pHigh - pLow) * (cHigh - cLow);
+            return (uint8_t)(cap + 0.5f);
+        }
+    }
+    return pts[n - 1].capPercent;  // unreachable; satisfies the compiler
+}
+
 // Vane convention: vaneClosedPercent (0) = fully closed = max drive pressure /
 // boost; vaneOpenPercent (88) = fully open = no restriction. BPR = drive / boost.
 // Closing vanes raises drive faster than boost, so BPR rises. To hold BPR at

@@ -18,6 +18,8 @@ static BoostConfig makeConfig(void) {
     cfg.ki = 20.0f;
     cfg.spoolProtectBoostPsi = 6.0f;
     cfg.vaneOpenCapPercent = 55;
+    cfg.vaneCapSchedule = nullptr;   // existing tests: flat-cap path
+    cfg.vaneCapScheduleLen = 0;
     return cfg;
 }
 
@@ -224,8 +226,48 @@ void test_hysteresis_enters_pi_above_high(void) {
     TEST_ASSERT_TRUE(st.inPiRegion);
 }
 
+static const VaneCapPoint kSchedule[] = {
+    {5.0f, 22}, {10.0f, 25}, {15.0f, 27}, {20.0f, 29}, {25.0f, 31},
+};
+
+void test_vane_cap_null_schedule_falls_back_to_flat(void) {
+    BoostConfig cfg = makeConfig();          // schedule null, vaneOpenCapPercent 55
+    TEST_ASSERT_EQUAL_UINT8(55, vaneOpenCapForBoost(10.0f, cfg));
+}
+
+void test_vane_cap_exact_points(void) {
+    BoostConfig cfg = makeConfig();
+    cfg.vaneCapSchedule = kSchedule;
+    cfg.vaneCapScheduleLen = 5;
+    TEST_ASSERT_EQUAL_UINT8(22, vaneOpenCapForBoost(5.0f, cfg));
+    TEST_ASSERT_EQUAL_UINT8(25, vaneOpenCapForBoost(10.0f, cfg));
+    TEST_ASSERT_EQUAL_UINT8(29, vaneOpenCapForBoost(20.0f, cfg));
+    TEST_ASSERT_EQUAL_UINT8(31, vaneOpenCapForBoost(25.0f, cfg));
+}
+
+void test_vane_cap_clamps_outside_ends(void) {
+    BoostConfig cfg = makeConfig();
+    cfg.vaneCapSchedule = kSchedule;
+    cfg.vaneCapScheduleLen = 5;
+    TEST_ASSERT_EQUAL_UINT8(22, vaneOpenCapForBoost(0.0f, cfg));   // below first
+    TEST_ASSERT_EQUAL_UINT8(22, vaneOpenCapForBoost(2.0f, cfg));   // below first
+    TEST_ASSERT_EQUAL_UINT8(31, vaneOpenCapForBoost(30.0f, cfg));  // above last
+}
+
+void test_vane_cap_interpolates_midpoint(void) {
+    BoostConfig cfg = makeConfig();
+    cfg.vaneCapSchedule = kSchedule;
+    cfg.vaneCapScheduleLen = 5;
+    // 12.5 psi: 25 + (2.5/5)*(27-25) = 26
+    TEST_ASSERT_EQUAL_UINT8(26, vaneOpenCapForBoost(12.5f, cfg));
+}
+
 int main(int, char **) {
     UNITY_BEGIN();
+    RUN_TEST(test_vane_cap_null_schedule_falls_back_to_flat);
+    RUN_TEST(test_vane_cap_exact_points);
+    RUN_TEST(test_vane_cap_clamps_outside_ends);
+    RUN_TEST(test_vane_cap_interpolates_midpoint);
     RUN_TEST(test_spool_region_holds_spool_position);
     RUN_TEST(test_bpr_below_target_closes);
     RUN_TEST(test_bpr_above_target_opens);
