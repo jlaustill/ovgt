@@ -1,6 +1,8 @@
 #ifndef BoostController_h
 #define BoostController_h
 
+#include <stdint.h>
+
 class BoostController {
     public:
         static void Initialize();
@@ -13,6 +15,9 @@ class BoostController {
         // controller is in, and the integral windup that precedes the snap).
         static bool getInPiRegion();
         static float getIntegralTerm();
+        // Open-cap (%) the controller applied on the last update — for telemetry so
+        // we can see the vane riding the boost-scheduled cap. See vaneOpenCapForBoost.
+        static uint8_t getActiveVaneCap();
 };
 
 #endif
