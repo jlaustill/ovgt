@@ -17,6 +17,12 @@ test("formats core telemetry fields", () => {
   expect(lines).toContain("BPR 0.00/1.00");
   expect(lines).toContain("dem 25%");
   expect(lines).toContain("MCU 45.3C");
+  expect(lines).toContain("cap "); // vane_cap rendered on the actuator line
+});
+
+test("vane_cap renders, and falls back to -- when absent", () => {
+  expect(formatTelemetry({ ...sample, vane_cap: 29 }).join("\n")).toContain("cap 29");
+  expect(formatTelemetry(sample).join("\n")).toContain("cap --");
 });
 
 test("ce_pct -1 renders as -- and settled drops the ~", () => {

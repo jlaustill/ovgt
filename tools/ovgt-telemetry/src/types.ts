@@ -21,6 +21,7 @@ export interface TelemetrySample {
   pos_pct: number;
   act_load?: number; // actuator motor effort (0 = coasting, ~2220 = straining). Optional: absent in pre-2026-07-05 logs.
   act_temp?: number; // actuator body temp (raw feedback byte). Optional: absent in pre-2026-07-05 logs.
+  vane_cap?: number; // active boost-scheduled vane open-cap %. Optional: absent in pre-2026-07-05 logs.
   brake: boolean;
 }
 
