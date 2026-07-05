@@ -262,8 +262,36 @@ void test_vane_cap_interpolates_midpoint(void) {
     TEST_ASSERT_EQUAL_UINT8(26, vaneOpenCapForBoost(12.5f, cfg));
 }
 
+void test_schedule_clamps_open_slam_to_scheduled_cap(void) {
+    BoostConfig cfg = makeConfig();
+    cfg.vaneCapSchedule = kSchedule;
+    cfg.vaneCapScheduleLen = 5;
+    BoostInputs in;
+    in.boostGaugePsi = 20.0f;   // schedule cap = 29
+    in.tipGaugePsi = 30.0f;     // bpr 1.5 > target -> wants to open fully
+    BoostState st = {0.0f, false, true, 0};
+    uint8_t vane = boostBprStep(in, cfg, st, 0.01f);
+    TEST_ASSERT_EQUAL_UINT8(29, vane);          // clamped to scheduled cap, not 55
+    TEST_ASSERT_EQUAL_UINT8(29, st.lastVaneCap); // cap recorded for telemetry
+}
+
+void test_spool_region_records_spool_as_cap(void) {
+    BoostConfig cfg = makeConfig();
+    cfg.vaneCapSchedule = kSchedule;
+    cfg.vaneCapScheduleLen = 5;
+    BoostInputs in;
+    in.boostGaugePsi = 1.0f;    // spool region
+    in.tipGaugePsi = 0.5f;
+    BoostState st = {0.0f, false, false, 0};
+    uint8_t vane = boostBprStep(in, cfg, st, 0.01f);
+    TEST_ASSERT_EQUAL_UINT8(cfg.spoolPercent, vane);
+    TEST_ASSERT_EQUAL_UINT8(cfg.spoolPercent, st.lastVaneCap); // meaningful readout
+}
+
 int main(int, char **) {
     UNITY_BEGIN();
+    RUN_TEST(test_schedule_clamps_open_slam_to_scheduled_cap);
+    RUN_TEST(test_spool_region_records_spool_as_cap);
     RUN_TEST(test_vane_cap_null_schedule_falls_back_to_flat);
     RUN_TEST(test_vane_cap_exact_points);
     RUN_TEST(test_vane_cap_clamps_outside_ends);

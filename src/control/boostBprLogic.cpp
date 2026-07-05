@@ -48,6 +48,7 @@ uint8_t boostBprStep(const BoostInputs &in, const BoostConfig &cfg,
     //    spool needs. Hold a fixed spool position and flag the pending handoff.
     if (!state.inPiRegion) {
         state.wasSpooling = true;
+        state.lastVaneCap = cfg.spoolPercent;   // meaningful readout in spool region
         return clampVane((float)cfg.spoolPercent,
                          cfg.vaneClosedPercent, cfg.vaneOpenPercent);
     }
@@ -98,6 +99,8 @@ uint8_t boostBprStep(const BoostInputs &in, const BoostConfig &cfg,
     //    high-load limit cycle can only swing between the spool position and the
     //    cap (e.g. 22<->55), never stop-to-stop. Tuning spoolPercent moves both the
     //    spool hold and this floor together.
-    return clampVane(vane, cfg.spoolPercent, cfg.vaneOpenCapPercent);
+    uint8_t cap = vaneOpenCapForBoost(in.boostGaugePsi, cfg);
+    state.lastVaneCap = cap;
+    return clampVane(vane, cfg.spoolPercent, cap);
 }
 
