@@ -4,13 +4,34 @@ export interface PortLike {
   path: string;
   vendorId?: string;
   productId?: string;
+  serialNumber?: string;
 }
 
 const TEENSY_VENDOR_ID = "16c0";
 
-export function pickTeensyPort(ports: PortLike[]): string | undefined {
-  const teensy = ports.find((p) => (p.vendorId ?? "").toLowerCase() === TEENSY_VENDOR_ID);
-  return teensy?.path;
+// The stable, serial-keyed symlink udev creates for a running Teensy. Unlike
+// /dev/ttyACM*, it always points at THIS specific board and survives USB
+// re-enumeration — so we open the board we mean, never "device number 1".
+export function teensyByIdPath(serial: string): string {
+  return `/dev/serial/by-id/usb-Teensyduino_USB_Serial_${serial}-if00`;
+}
+
+// Resolve the port for a specific Teensy by USB serial number. Matching by
+// serial (not by /dev path, not by vendor alone) is what stops us grabbing the
+// WRONG board when several 16c0 Teensies are plugged in — e.g. the OVGT turbo
+// controller vs the vulCAN logger, which share vendor 16c0. Returns the stable
+// by-id symlink for the match. Fails CLOSED: undefined when the requested board
+// is absent (or when no target is given and several Teensies are present), so
+// callers refuse to connect rather than talking to a random device.
+export function pickTeensyPort(ports: PortLike[], targetSerial?: string): string | undefined {
+  const teensies = ports.filter((p) => (p.vendorId ?? "").toLowerCase() === TEENSY_VENDOR_ID);
+  const match = targetSerial
+    ? teensies.find((p) => p.serialNumber === targetSerial)
+    : teensies.length === 1
+      ? teensies[0]
+      : undefined;
+  if (!match) return undefined;
+  return match.serialNumber ? teensyByIdPath(match.serialNumber) : match.path;
 }
 
 // Minimal surface shared by a real SerialPort and the test's fake stream.

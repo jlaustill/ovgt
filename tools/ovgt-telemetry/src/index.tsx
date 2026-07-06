@@ -6,12 +6,18 @@ import React from "react";
 import { SerialPort } from "serialport";
 import { App } from "./app";
 import { parseLine } from "./parse";
-import { pickTeensyPort, SerialLink, type SerialStream } from "./serial";
+import { pickTeensyPort, teensyByIdPath, SerialLink, type SerialStream } from "./serial";
 import { MongoStore } from "./store";
 import type { SettleEvent, TelemetrySample } from "./types";
 
+// OVGT turbo controller USB serial (RUNNING-firmware serial — a Teensy reports a
+// DIFFERENT serial in HalfKay bootloader). Override with --serial or OVGT_SERIAL.
+// vulCAN logger is 16550620; never connect to it by accident.
+const OVGT_TEENSY_SERIAL = process.env.OVGT_SERIAL ?? "11969470";
+
 interface Args {
   port?: string;
+  serial?: string;
   mongo: string;
   noMongo: boolean;
   label: string;
@@ -23,6 +29,7 @@ function parseArgs(argv: string[]): Args {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--port") args.port = argv[++i];
+    else if (a === "--serial") args.serial = argv[++i];
     else if (a === "--mongo") args.mongo = argv[++i]!;
     else if (a === "--no-mongo") args.noMongo = true;
     else if (a === "--label") args.label = argv[++i]!;
@@ -128,12 +135,19 @@ async function main(): Promise<void> {
     }
   };
 
+  const serial = args.serial ?? OVGT_TEENSY_SERIAL;
   let portPath = args.port;
+  let boardFound = false;
   if (!portPath) {
-    portPath = pickTeensyPort(await SerialPort.list());
+    // Resolve by serial. If present now → its stable by-id symlink. If absent →
+    // STILL the by-id symlink (constructed), so open() keeps retrying THIS board
+    // instead of ever falling back to a random /dev/ttyACM* (e.g. vulCAN).
+    const found = pickTeensyPort(await SerialPort.list(), serial);
+    boardFound = found !== undefined;
+    portPath = found ?? teensyByIdPath(serial);
   }
   const link = new SerialLink({
-    open: () => new SerialPort({ path: portPath ?? "/dev/ttyACM0", baudRate: 115200 }) as unknown as SerialStream,
+    open: () => new SerialPort({ path: portPath!, baudRate: 115200 }) as unknown as SerialStream,
     onLine: handleLine,
     onStatus: (st, d) => feed.emit("status", d ? `${st}: ${d}` : st),
   });
@@ -148,7 +162,11 @@ async function main(): Promise<void> {
 
   // Start the source AFTER mount so Root's feed subscription is already live.
   setImmediate(() => {
-    if (!portPath) feed.emit("log", "no Teensy found (VID 16c0); trying /dev/ttyACM0 — or pass --port");
+    if (!args.port) {
+      feed.emit("log", boardFound
+        ? `OVGT board serial ${serial} → ${portPath}`
+        : `waiting for OVGT board serial ${serial} (${portPath}); refusing any other device`);
+    }
     if (store) feed.emit("log", `mongo: logging to ${args.mongo} db=ovgt`);
     link.start();
   });

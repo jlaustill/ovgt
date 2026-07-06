@@ -1,15 +1,34 @@
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import { expect, test, vi } from "vitest";
-import { pickTeensyPort, SerialLink, type SerialStream } from "./serial";
+import { pickTeensyPort, teensyByIdPath, SerialLink, type SerialStream } from "./serial";
 
-test("pickTeensyPort finds the 16c0 device, case-insensitive", () => {
+test("pickTeensyPort finds the sole 16c0 device, case-insensitive", () => {
   const ports = [
     { path: "/dev/ttyS0", vendorId: undefined },
     { path: "/dev/ttyACM0", vendorId: "16C0", productId: "0483" },
   ];
-  expect(pickTeensyPort(ports)).toBe("/dev/ttyACM0");
+  expect(pickTeensyPort(ports)).toBe("/dev/ttyACM0"); // one Teensy, no serial → its path
   expect(pickTeensyPort([{ path: "/dev/ttyS0" }])).toBeUndefined();
+});
+
+test("pickTeensyPort selects the RIGHT board by serial when several are present", () => {
+  const ports = [
+    { path: "/dev/ttyACM1", vendorId: "16c0", productId: "0483", serialNumber: "16550620" }, // vulCAN
+    { path: "/dev/ttyACM2", vendorId: "16c0", productId: "0483", serialNumber: "11969470" }, // OVGT
+  ];
+  // Targets OVGT by serial → its stable by-id symlink, NOT vulCAN's ttyACM1.
+  expect(pickTeensyPort(ports, "11969470")).toBe(teensyByIdPath("11969470"));
+  expect(pickTeensyPort(ports, "16550620")).toBe(teensyByIdPath("16550620"));
+});
+
+test("pickTeensyPort fails CLOSED: target absent, or ambiguous with no target", () => {
+  const ports = [
+    { path: "/dev/ttyACM1", vendorId: "16c0", serialNumber: "16550620" },
+    { path: "/dev/ttyACM2", vendorId: "16c0", serialNumber: "11969470" },
+  ];
+  expect(pickTeensyPort(ports, "99999999")).toBeUndefined(); // requested board not plugged in
+  expect(pickTeensyPort(ports)).toBeUndefined(); // 2 Teensies, no target → refuse to guess
 });
 
 // Fake serial stream: inner PassThrough feeds `pipe`; writes are recorded.
