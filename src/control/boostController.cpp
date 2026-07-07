@@ -30,7 +30,7 @@ static BoostConfig boostConfig = {
     1.5f,                // bprTarget
     1.5f,                // boostSpoolPsi (fall back to spool below this)
     3.0f,                // boostPiPsi (engage PI above this; hysteresis dead band)
-    22,                  // spoolPercent (fixed vane position while spooling)
+    18,                  // spoolPercent (fixed vane position while spooling)
     VANE_CLOSED_PERCENT, // vaneClosedPercent (max drive / boost)
     VANE_OPEN_PERCENT,   // vaneOpenPercent (relief / mechanical open limit)
     20.0f,               // kp
