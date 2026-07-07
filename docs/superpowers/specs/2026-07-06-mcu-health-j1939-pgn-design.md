@@ -80,8 +80,8 @@ is genuinely fleet-universal:
   - **decode** 8 bytes → the same struct with per-field validity.
 - **Consumers:** OSSM and OCT already declare `jlaustill/J1939` in `platformio.ini`; they
   pick this up on a version bump. **OVGT hand-rolls J1939** today (no lib dep) — it is
-  still the reference implementation; whether it adopts the lib dependency or vendors the
-  same constants is decided in the implementation plan.
+  still the reference implementation, and **it will adopt the `jlaustill/J1939` dependency**
+  (decided 2026-07-06) so the whole fleet shares one J1939 codepath for this frame.
 
 ## Component boundaries
 
@@ -123,6 +123,11 @@ bus ─► listener RX (PGN 0xFFDC) ─► decode ─► health[SA] ─► log /
 
 ## Open items for the implementation plan
 
-- OVGT: adopt the `jlaustill/J1939` dependency vs. vendor the constants locally.
 - Exact `J1939McuHealth` module naming and API shape to match v2 library conventions.
 - Per-MCU uptime source (OSSM/OCT equivalents of `millis() / 60000`).
+
+## Decisions log
+
+- 2026-07-06: OVGT will **adopt the `jlaustill/J1939` library dependency** (retiring its
+  hand-rolled J1939 for this frame) rather than vendor the constants — fleet shares one
+  J1939 codepath.
