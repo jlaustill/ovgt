@@ -5,6 +5,9 @@
 #include "j1939Decode.h"
 #include "j1939Health.h"
 #include "j1939Encode.h"
+#include "systemHealth.h"
+#include <J1939McuHealth.h>
+#include "mcuHealthFrame.h"
 
 // CAN2 = Teensy 4.1 pins 0 (RX) / 1 (TX). J1939 @ 250 kbps, 29-bit extended IDs.
 static FlexCAN_T4<CAN2, RX_SIZE_256, TX_SIZE_16> Can1939;
@@ -250,6 +253,17 @@ static void transmit1000ms() {
     memset(buf, 0xFF, 8);
     put16(buf, 0, j1939EncodeTurboPressureRaw((float)appData.compressorInputPressureHpaa));
     sendPgn(PGN_TURBO_INFO_3, buf);
+
+    // MCU health — PGN 0xFFDC (Proprietary B, broadcast). Controller die temp +
+    // reset cause + boot count + uptime, so a listener collects one record per MCU
+    // by source address. Payload encoding lives in jlaustill/J1939 (McuHealth).
+    McuHealth health = buildMcuHealth(tempmonGetTemp(),
+                                      SystemHealth_resetCauseCode(),
+                                      SystemHealth_bootCount(),
+                                      millis() / 60000UL);
+    uint8_t healthBuf[8];
+    J1939McuHealth_encode(&health, healthBuf);
+    sendPgn(J1939McuHealth_PGN, healthBuf);
 }
 
 uint8_t J1939::unknownCount() { return unknownUsed; }
