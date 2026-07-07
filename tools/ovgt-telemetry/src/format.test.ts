@@ -25,6 +25,15 @@ test("vane_cap renders, and falls back to -- when absent", () => {
   expect(formatTelemetry(sample).join("\n")).toContain("cap --");
 });
 
+test("oil temp/pressure (OVGT sensors) render on the CE line; -- when absent", () => {
+  // absent (pre-2026-07-07 logs) -> both dashed
+  expect(formatTelemetry(sample).join("\n")).toContain("oil -- --");
+  // real sensor values: firmware already emits pressure in psi
+  expect(formatTelemetry({ ...sample, oil_temp_c: 95, oil_press_psi: 48 }).join("\n")).toContain(
+    "oil 95C 48psi",
+  );
+});
+
 test("ce_pct -1 renders as -- and settled drops the ~", () => {
   expect(formatTelemetry(sample).join("\n")).toContain("CE --");
   const warm = { ...sample, ce_pct: 71, ce_settled: false };

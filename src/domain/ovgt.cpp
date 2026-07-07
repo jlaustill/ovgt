@@ -112,6 +112,10 @@ void ovgt::handleDebug() {
     Json_addFloat2("cit_c", appData.compressorInputTempC);
     Json_addFloat2("cot_c", appData.compressorOutputTempC);
     Json_addInt("tit_c", appData.turbineInletTempC);
+    // OVGT's own oil sensors (ADS2): 150 PSI ratiometric + AEM 30-2013 thermistor.
+    // Distinct from the engine ECU's oil_c/oil_kpa (J1939 SPN 175/100) emitted below.
+    Json_addFloat2("oil_press_psi", appData.oilPressureHpa * 0.0145038f);
+    Json_addInt("oil_temp_c", appData.oilTempC);
     Json_addFloat2("mcu_c", tempmonGetTemp());  // Teensy 4.1 on-die temperature
     Json_addFloat2("ce_pct", efficiency >= 0.0f ? efficiency * 100.0f : -1.0f);
     Json_addBool("ce_settled", ceSettled);
