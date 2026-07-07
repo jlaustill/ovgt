@@ -18,6 +18,14 @@ static const float HPA_TO_PSI = 0.0145038f;
 // in the tens (vane-% per unit error), unlike the brake's psi-scale kp. kp/ki were
 // validated on-truck (kp=88 was bang-bang; kp=20/ki=20 glides at sustained cruise).
 // No boost ceiling: targets BPR only (deliberate — see design doc).
+// Boost (gauge psi) -> vane open-cap (%). THE tuning knob for the closure/slam
+// strategy: edit these points + reflash. Ascending boost. Floor stays spoolPercent.
+static const VaneCapPoint vaneCapSchedule[] = {
+    { 5.0f, 22 }, { 10.0f, 25 }, { 15.0f, 27 }, { 20.0f, 29 }, { 25.0f, 31 },
+};
+static const uint8_t vaneCapScheduleLen =
+    sizeof(vaneCapSchedule) / sizeof(vaneCapSchedule[0]);
+
 static BoostConfig boostConfig = {
     1.5f,                // bprTarget
     1.5f,                // boostSpoolPsi (fall back to spool below this)
@@ -28,10 +36,11 @@ static BoostConfig boostConfig = {
     20.0f,               // kp
     20.0f,               // ki
     6.0f,                // spoolProtectBoostPsi (below this boost, don't open past spool)
-    55                   // vaneOpenCapPercent (controller may not open past this;
-                         // settled operation stays <=50%, so this clips only the kick)
+    55,                  // vaneOpenCapPercent (flat fallback if schedule unset)
+    vaneCapSchedule,     // vaneCapSchedule (boost-scheduled open cap; supersedes flat)
+    vaneCapScheduleLen   // vaneCapScheduleLen
 };
-static BoostState boostState = {0.0f, true, false};
+static BoostState boostState = {0.0f, true, false, 0};
 static uint32_t lastUpdateMs = 0;
 
 #if !BOOST_USE_BPR
@@ -98,9 +107,11 @@ void BoostController::update() {
 #else
     (void)dt;
     appData.actuatorDemandedPosition = interpolate(boostGaugePsi);
+    boostState.lastVaneCap = boostConfig.vaneOpenCapPercent;  // sane readout in MAP mode
 #endif
 }
 
 float BoostController::getBprTarget() { return boostConfig.bprTarget; }
 bool BoostController::getInPiRegion() { return boostState.inPiRegion; }
 float BoostController::getIntegralTerm() { return boostState.integralTerm; }
+uint8_t BoostController::getActiveVaneCap() { return boostState.lastVaneCap; }

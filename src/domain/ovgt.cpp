@@ -117,6 +117,9 @@ void ovgt::handleDebug() {
     Json_addBool("ce_settled", ceSettled);
     Json_addUint("dem_pct", appData.actuatorDemandedPosition);
     Json_addUint("pos_pct", appData.actuatorReportedPosition);
+    Json_addUint("act_load", appData.actuatorMotorLoad);   // actuator motor effort (0 = coasting, ~2220 = straining)
+    Json_addUint("act_temp", appData.actuatorTemp);        // actuator body temp (raw byte from feedback frame)
+    Json_addUint("vane_cap", BoostController::getActiveVaneCap());  // active boost-scheduled open-cap %
     Json_addStr("reset_cause", resetCauseName(SystemHealth_resetCauseCode()));
     Json_addUint("boot_count", SystemHealth_bootCount());
     Json_addBool("crash", bootCrashPresent);
