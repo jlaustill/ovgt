@@ -135,3 +135,35 @@ New unit tests, TDD:
 - EGT-relief override / boost ceiling (noted for a future iteration).
 - Making the floor boost-dependent (floor stays 22 — validated; 18 spiked EGT).
 - Any runtime/serial tuning (compile-time only — driving-hazard policy).
+
+## Validation status (as of 2026-07-06) — flashed, road-tested, MERGE-READY pending one test
+
+**Passed:**
+- 102 native + 27 host tests green. Flashed to the turbo controller (serial `00124393`
+  bootloader / `11969470` running).
+- **Light-to-mid load:** `pos` tracks the scheduled `cap` within ±1% for 94% of a drive;
+  `act_load` ~0; no BPR open-slam. Cap rides up with boost per the schedule (22→29).
+- **Hard pull (27.3 psi, TIP 42.5 psi, 2895 rpm):** vane held commanded position
+  (`pos 23` vs `dem 22`), `act_load` max **599** (no stall — vs 2220 pegging before),
+  BPR **1.56 at peak / 1.51 avg** (dead on the 1.5 target), 0% over cap. EGT ~751°C on
+  that pull.
+
+**Corrected understanding (important — the original premise was backwards):** the
+2026-07-05 "actuator stall" (pos floating +38 over cap, `act_load` pegging 2220) was
+NOT the actuator being torque-starved against backpressure. It was a **loose turbo
+bleeding drive pressure before the turbine.** Exhaust load *assists* vane closing; the
+loose turbo removed that assist so the actuator had to close the vanes alone and maxed
+out. Turbo re-secured → actuator loafs. So **`act_load` is now a loose-turbo detector**,
+and the "bulletproof actuator" purchase looks unnecessary. See memory
+`project_actuator_closure_under_load`.
+
+**Open before merge-confidence is total:**
+1. **Sustained loaded-trailer pull at 20+ psi.** Today's 27 psi was a brief hill pull;
+   the vane sat *below* the cap so the actuator was never maxed against it. If a sustained
+   loaded pull loafs like the hill did, the actuator question is closed.
+2. **EGT watch.** The tighter closure biases hotter — peak **799°C** observed. If sustained
+   loaded pulls sit north of ~780°C, add the deferred EGT-relief override or relax the top
+   of `vaneCapSchedule[]`.
+
+**To resume:** re-read this section + `project_vane_cap_schedule` memory. Tune knob is
+`vaneCapSchedule[]` in `src/control/boostController.cpp` (5 points, boost→cap %).
