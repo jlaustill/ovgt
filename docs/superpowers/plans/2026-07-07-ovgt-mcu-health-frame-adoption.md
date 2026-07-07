@@ -138,7 +138,7 @@ McuHealth buildMcuHealth(float mcuTempC, uint8_t resetCauseCode,
 Create `src/sensors/mcuHealthFrame.cpp`:
 
 ```cpp
-#include "sensors/mcuHealthFrame.h"
+#include "mcuHealthFrame.h"   // same-dir: teensy41 build has -I include, NOT -I src
 
 // Narrow a u32 reading to u16 without ever hitting the 0xFFFF N/A sentinel.
 static uint16_t capBelowSentinel(uint32_t value) {
