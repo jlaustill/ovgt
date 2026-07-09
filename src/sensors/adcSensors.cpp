@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "adcSensors.h"
+#include "cotThermistor.h"
 #include <Adafruit_ADS1X15.h>
 #include <math.h>
 
@@ -62,6 +63,7 @@ bool AdcSensors::conversionStarted2 = false;
 uint32_t AdcSensors::conversionStartTime2 = 0;
 float AdcSensors::ema2[NUM_CHANNELS] = {0};
 bool AdcSensors::emaInitialized2[NUM_CHANNELS] = {false};
+bool AdcSensors::cotFresh = false;
 
 void AdcSensors::Initialize() {
     ads.setGain(GAIN_TWOTHIRDS); // +/-6.144V range for 5V sensors
@@ -138,13 +140,19 @@ void AdcSensors::updateAds2() {
     } else if (conversionReady2) {
         int16_t raw2 = ads2.getLastConversionResults();
         float voltage2 = ads2.computeVolts(raw2);
-        if (!emaInitialized2[currentChannel2]) {
-            ema2[currentChannel2] = voltage2;
-            emaInitialized2[currentChannel2] = true;
+        float value2;
+        if (currentChannel2 == 3) {
+            value2 = voltage2;                 // COT: raw, no smoothing (preserve response)
         } else {
-            ema2[currentChannel2] += EMA_ALPHA * (voltage2 - ema2[currentChannel2]);
+            if (!emaInitialized2[currentChannel2]) {
+                ema2[currentChannel2] = voltage2;
+                emaInitialized2[currentChannel2] = true;
+            } else {
+                ema2[currentChannel2] += EMA_ALPHA * (voltage2 - ema2[currentChannel2]);
+            }
+            value2 = ema2[currentChannel2];
         }
-        processResult2(currentChannel2, ema2[currentChannel2]);
+        processResult2(currentChannel2, value2);
         conversionStarted2 = false;
         currentChannel2 = (currentChannel2 + 1) % NUM_CHANNELS;
     }
@@ -154,6 +162,9 @@ void AdcSensors::update() {
     updateAds1();
     updateAds2();
 }
+
+bool AdcSensors::cotSampleReady() { return cotFresh; }
+void AdcSensors::clearCotSample() { cotFresh = false; }
 
 void AdcSensors::processResult(uint8_t channel, float voltage) {
     switch (channel) {
@@ -231,11 +242,13 @@ void AdcSensors::processResult2(uint8_t channel, float voltage) {
             break;
         }
         case 3: {
-            // Fuel lift pump pressure: 15 PSI (1034 hPa), 0.5–4.5V ratiometric
-            float hPa = (voltage - 0.5f) * 258.575f;
-            if (hPa < 0.0f) hPa = 0.0f;
-            if (hPa > 1034.0f) hPa = 1034.0f;
-            appData.liftPumpPressureHpa = (uint16_t)hPa;
+            // Compressor outlet temp: RIFE Hi-AT NTC, 1.0 kΩ pull-up to 5 V, NTC to GND.
+            // Raw sample (no EMA); hold last good on a railed (open/short) reading.
+            float tempC;
+            if (cotThermistorReadC(voltage, &tempC)) {
+                appData.compressorOutputTempC = tempC;
+                cotFresh = true;
+            }
             break;
         }
     }

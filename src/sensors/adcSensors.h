@@ -7,6 +7,8 @@ class AdcSensors {
     public:
         static void Initialize();
         static void update();
+        static bool cotSampleReady();
+        static void clearCotSample();
     private:
         static const uint8_t NUM_CHANNELS = 4;
         static constexpr float EMA_ALPHA = 0.01f; // ~100-sample smoothing
@@ -24,6 +26,7 @@ class AdcSensors {
         static uint32_t conversionStartTime2;
         static float ema2[NUM_CHANNELS];
         static bool emaInitialized2[NUM_CHANNELS];
+        static bool cotFresh;   // set when ADS2 ch3 (COT) stores a fresh reading
 
         static void updateAds1();
         static void updateAds2();
