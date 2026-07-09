@@ -449,6 +449,20 @@ in `src/sensors/cotSettle.h`.
 
 ---
 
+## Execution correction (Task 4)
+
+Two "orphaned" assumptions were wrong and the deletions were reverted during
+execution (build caught both):
+
+- **`liftPumpPressureHpa` is kept.** It is broadcast as J1939 SPN 94 (fuel delivery
+  pressure) in PGN 65263 at `j1939.cpp:221`. The channel was never wired, so the
+  field was already always 0 and the broadcast already sent 0 — removing the ADS
+  source changed nothing. Only Step 5 changed (field retained with a clarifying
+  comment); the ch3→COT repurposing stands.
+- **The Adafruit MAX31856 library is kept.** It is still `#include`d by `titSensor`
+  (active) and by the dormant-but-compiled `totSensor`/`citSensor`. Only Step 4
+  changed (lib line retained).
+
 ## Self-Review
 
 - **Spec coverage:** §1 extracted module → Task 1. §2 ADS2 ch3 decode + raw passthrough → Task 3. §3 cotSettle fed at native rate + resized buffers → Tasks 2 & 4. §4 remove MAX31856 (files, lib, pin 37) → Task 4. §5 remove `liftPumpPressureHpa` → Task 4. Unchanged consumers (CE calc, `cot_c`, J1939 broadcast) require no edits — confirmed they read `appData.compressorOutputTempC` directly. Testing (datasheet points, rail-reject, high-rate settle) → Tasks 1 & 2. On-hardware verification → dedicated section.
