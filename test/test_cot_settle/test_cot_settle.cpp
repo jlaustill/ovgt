@@ -128,9 +128,23 @@ void test_surfaced_slopes_and_timer(void) {
     TEST_ASSERT_TRUE(flat.settleTimerS > 0.3f);  // window cleared the step, timer running
 }
 
+// At the native ADS rate (~200 Hz, dt = 0.005 s) a sustained-flat COT + boost must
+// still settle: the 0.5 s windowed-slope flatness needs the slope ring to hold a
+// full 0.5 s (>= 100 samples), which only passes with the grown COT_SLOPE_WINDOW.
+void test_settled_flag_at_ads_rate(void) {
+    CotSettleConfig cfg = makeConfig();
+    CotSettleState st; cotSettleInit(st);
+    cotSettleStep(st, cfg, 50.0f, 5.0f, 0.005f);  // seed
+    CotSettleResult r = {false, false, 0, 0, 0};
+    for (int k = 0; k < 500; k++) r = cotSettleStep(st, cfg, 50.0f, 5.0f, 0.005f);
+    TEST_ASSERT_TRUE(r.settled);  // 500*0.005 = 2.5 s >= 2.0 s
+    TEST_ASSERT_TRUE(COT_SLOPE_WINDOW >= 100);  // ring must span 0.5 s at 200 Hz
+}
+
 int main(int, char **) {
     UNITY_BEGIN();
     RUN_TEST(test_settled_flag_after_sustained_flat);
+    RUN_TEST(test_settled_flag_at_ads_rate);
     RUN_TEST(test_settled_flag_with_realistic_cot_noise);
     RUN_TEST(test_settled_resets_on_spike);
     RUN_TEST(test_tau_extraction_first_order);

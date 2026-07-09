@@ -24,12 +24,12 @@ struct CotSettleResult {
     float settleTimerS;     // accumulated flat time toward the settled flag
 };
 
-// Max samples buffered during one measurement. ~512 @ ~10 Hz covers ~51 s.
-static const uint16_t COT_SETTLE_BUFFER = 512;
+// Max samples buffered during one measurement. ~2048 @ ~200 Hz covers ~10 s.
+static const uint16_t COT_SETTLE_BUFFER = 2048;
 
-// Ring buffer for the settled-flag's windowed flatness slope. ~16 @ ~10 Hz covers
-// ~1.6 s, comfortably more than any sane slopeWindowSeconds.
-static const uint8_t COT_SLOPE_WINDOW = 16;
+// Ring buffer for the settled-flag's windowed flatness slope. ~128 @ ~200 Hz covers
+// ~0.64 s, comfortably more than any sane slopeWindowSeconds (stays in uint8_t ring).
+static const uint8_t COT_SLOPE_WINDOW = 128;
 
 struct CotSettleState {
     bool     initialized;
