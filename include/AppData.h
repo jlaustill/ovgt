@@ -22,7 +22,7 @@ struct AppData {
     int16_t oilTempC;
     uint16_t oilPressureHpa;
     uint16_t turbineOutPressureHpa;
-    uint16_t liftPumpPressureHpa;
+    uint16_t liftPumpPressureHpa;  // J1939 SPN 94 broadcast only; no local sensor wired
     bool pgFault;
     // J1939-received engine/transmission state (decoded in j1939Sniff)
     uint8_t torqueConverterLockupStatus;  // SPN 573, 2-bit (0-3), 1 = engaged

@@ -6,7 +6,6 @@
 #include "AppData.h"
 #include "sensors/adcSensors.h"
 #include "sensors/titSensor.h"
-#include "sensors/cotSensor.h"
 #include "sensors/citSensor.h"
 #include "sensors/totSensor.h"
 #include "sensors/compressorEfficiency.h"
@@ -253,7 +252,7 @@ void ovgt::setup() {
     pinMode(PG_PIN, INPUT);
 
     // Drive all SPI CS pins high before initializing any SPI device
-    for (uint8_t pin : {3, 4, 5, 10, 24, 25, 26, 35, 37, 38, 39, 40}) {
+    for (uint8_t pin : {3, 4, 5, 10, 24, 25, 26, 35, 38, 39, 40}) {
         pinMode(pin, OUTPUT);
         digitalWrite(pin, HIGH);
     }
@@ -261,8 +260,6 @@ void ovgt::setup() {
     AdcSensors::Initialize();
     SystemHealth_feed();
     TitSensor::Initialize();
-    SystemHealth_feed();
-    CotSensor::Initialize();
     SystemHealth_feed();
     // CitSensor::Initialize();
     // TotSensor::Initialize();
@@ -285,7 +282,8 @@ void ovgt::setup() {
 void ovgt::loop() {
     AdcSensors::update();
     TitSensor::update();
-    if (CotSensor::update()) {
+    if (AdcSensors::cotSampleReady()) {
+        AdcSensors::clearCotSample();
         float cotDt = cotSampleDt / 1000000.0f;
         cotSampleDt = 0;
         int16_t boostHpa = (int16_t)appData.compressorOutputPressureHpaa
