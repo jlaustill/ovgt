@@ -71,7 +71,7 @@ equivalences, useful only for cross-shopping:
 | **Turbine wheel** | 12-bl straight 70/60 (HX35) · 12-bl **curved** 65.5/58 (HY35/HE341/HE351) · 12-bl 76/64 (HX40). The curved wheel pairs with the 9 cm undivided housings. |
 | **CHRA→housing pattern** | HX35/HX40 use the standard clamp/bolt pattern; WH1E uses a **4-bolt** pattern that drops into HX40-style (incl. Bullseye) housings. |
 | **Turbine inlet flange** | HX35 12 cm twin-scroll is a **T3 pattern** (M8, 3.375" × 1.75" centers). ⚠️ Dodge-sourced castings often have **2 through-holes + 2 threaded holes** — the threaded pair must be drilled out to slip over manifold studs. |
-| **Turbine outlet** | **HX35, HX40, and HY35 share the same 5-bolt outlet flange** — which is why one DPS adapter covers all three. Some housings add a removable 3" V-band flange on top of that 5-bolt face. Medium-duty HX40W goes 6-bolt / 4". |
+| **Turbine outlet** | **HX35, HX40, and HY35 share the same 5-bolt outlet flange** — which is why one DPS adapter covers all three. Some housings add a removable 3" V-band flange on top of that 5-bolt face; the DPS adapter **replaces that 5-bolt flange and reuses its gasket**. Medium-duty HX40W goes 6-bolt / 4". |
 | **T3/T4 adapters** | T3→T4 and Holset-flange adapter plates exist (AZ CNC and others). |
 
 ---
@@ -146,12 +146,19 @@ Before/after the housing arrives — nobody wants to do this in 37 °C:
       which DPS adapter to order
 - [ ] **Turbine inlet flange holes** on the received housing — 4 through-holes, or
       2 through + 2 threaded needing drill-out?
-- [ ] **Turbine outlet** — confirm whether the DPS adapter bolts to the bare 5-bolt
-      face (V-band flange removed) or clamps to the V-band
-- [ ] **"Long housing" geometry** — 3532214 is specifically the *long* variant.
-      Verify the outlet lands where the current downpipe expects it; it can bolt on
-      fine and still point somewhere inconvenient
 - [ ] Verify the received casting actually measures 12 cm² / accepts the 70/60 wheel
+- [ ] **Photograph the wastegate actuator boss** the moment it lands, before
+      spending any time on it — on an unmarked repro, the flapper/actuator
+      provision is the detail most likely to be subtly wrong, and it's the exact
+      feature the housing is being bought for
+
+**Not concerns:**
+
+- *Outlet mounting* — settled: the DPS adapter **replaces the 5-bolt flange
+  directly and reuses the same gasket.** It does not clamp to the V-band.
+- *"Long housing" geometry* — irrelevant here. Everything on the truck is currently
+  positioned relative to an **S300 DPS Turbonator**, so minor fitment adjustment is
+  required no matter which housing goes on.
 
 ### DPS exhaust adapter
 
@@ -159,6 +166,11 @@ Diesel Power Source *"HX35 | HX40 | HY35 Turbo Exhaust Adapter, 4 in & 4-3/8 in"
 converts the 3" outlet to 4" or 4-3/8". The **4 vs 4-3/8 is the outlet pipe size, not
 the bolt pattern**; one adapter family covers HX35/HX40/HY35 because they share the
 5-bolt outlet flange.
+
+**Mounting (confirmed):** the adapter **replaces the stock 5-bolt flange directly
+and reuses the same gasket** — it does *not* clamp onto the existing V-band. So the
+only open question on the adapter is which size to order, which falls out of the hot
+pipe measurement.
 
 ---
 
