@@ -196,6 +196,58 @@ smallest configuration in the H1 frame, sized for a stock '00–02 automatic. Ag
 a ~400 hp / ~45–50 lb/min target it is likely undersized regardless of what housing
 goes on it, which argues for option A on merit and not just on cost.
 
+### Test plan: stock-spec baseline, then iterate
+
+**Configuration under test:** 56 mm compressor · 70/60 turbine · **divided 12 cm²**
+housing. Deliberately the stock HX35 spec — the single best-documented point in the
+whole catalog, so deviations are interpretable rather than mysterious.
+
+**Method:** install → log → adjust wastegate spring → decide bigger or smaller. The
+spring is the only tuning axis that doesn't require pulling the turbo, so it gets
+exercised first.
+
+**Sizing sanity:** the 56 mm compressor is worth roughly 50–55 lb/min against a
+~45–50 lb/min target for 400 hp — near the top of its range rather than comfortably
+inside it. Expected to be close, which is exactly why it gets measured.
+
+#### Decision criteria — pre-register these before collecting data
+
+The wastegate is the cleanest turbine-sizing signal because it isolates the turbine
+from the compressor:
+
+| Observation | Reading |
+|---|---|
+| Gate stays **shut** at target boost under load | Turbine is the limit → **go bigger** |
+| Gate **cracks open early / often** | Turbine headroom exists → could **go smaller** for response |
+
+Supporting signals, all already logged by the telemetry stack:
+
+| Signal | Too small | Too big |
+|---|---|---|
+| **BPR** (drive/boost, target 1.5) | climbs steeply at high load → turbine choking | stays low but boost is lazy |
+| **CE** (the north-star objective) | peaks then falls off at high flow → compressor past the map's right edge | poor at low flow / surge |
+| **TIT / EGT** | rises with BPR — the turbine-too-small tell, and the safety limit | — |
+| **Time-to-boost** from a repeatable trigger | — | lazy |
+
+**TODO — set the actual thresholds.** These are judgment calls that depend on how
+the truck is used, and should be written down *before* the first pull:
+
+- Peak BPR that means "too small": `____`
+- CE floor at peak flow worth acting on: `____`
+- TIT ceiling (safety, not sizing): `____`
+- Time-to-boost that counts as "lazy": `____`
+
+#### ⚠️ Baseline validity
+
+Take the baseline **only on a known-sealed turbo installation.** Prior hard-won
+lesson on this truck: a loose/leaking turbo bleeds drive pressure and produces
+underboost that looks exactly like a sizing problem. Do not out-tune a mechanical
+leak — check the mounting hardware before trusting any sizing conclusion.
+
+Secondary: at ~4000 ft the pressure ratio for a given manifold pressure is higher
+than sea-level map talk assumes, which pushes operation further up the compressor
+map. Factor that in when reading CE against published maps.
+
 ### Identifying a used core
 
 **Holset service part numbers are 7 digits** (3532214, 4035199, 3519336). Anything
