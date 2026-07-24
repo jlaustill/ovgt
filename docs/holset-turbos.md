@@ -67,7 +67,7 @@ equivalences, useful only for cross-shopping:
 |---|---|
 | **Cartridge / CHRA** | Swaps across the H1 frame. Oil lines, mounting, drain all common. ⚠️ **Exception: the HY35W.** Its turbine rotating assembly is not shared — the 70/60 wheel & shaft (3519336) that fits HX35/HX35W/H1C/WH1C is explicitly *not* sold for the HY35W. See [the 2026-07-24 finding](#️-2026-07-24-the-cores-on-hand-are-hy35w-not-hx35). |
 | **Compressor cover** | Two mounts: **bolted** vs **V-band** (V-band on WH1C, WH1E). Cover contour is wheel-specific. A bigger wheel needs a matched cover **and** machining: bearing housing bore → ~88 mm, backplate from ~84.5 mm out to ~87 mm. |
-| **Turbine housing** | Must match the **turbine wheel** it wraps. Two wheel families: **70/60 straight** (H1C/HX35) and **76/64** (H1E/HX40). An HX40 housing physically bolts over an HX35 wheel but leaves a huge tip gap — fits, doesn't work. |
+| **Turbine housing** | Must match the **turbine wheel** it wraps. Two wheel families: **70/60 straight** (H1C/HX35) and **76/64** (H1E/HX40). An HX40 housing physically bolts over an HX35 wheel but leaves a huge tip gap — fits, doesn't work. **Asymmetry worth remembering: a housing can be bored *out* on a lathe to accept a bigger wheel, but never filled *in* to accept a smaller one.** (Done in practice — the DPS Turbonator housing was lathe-bored to clear the S363's 80 mm wheel.) So mismatches in the too-small-wheel direction are dead ends; too-big-wheel mismatches are often machinable. |
 | **Turbine wheel** | 12-bl straight 70/60 (HX35) · 12-bl **curved** 65.5/58 (HY35/HE341/HE351) · 12-bl 76/64 (HX40). The curved wheel pairs with the 9 cm undivided housings. |
 | **CHRA→housing pattern** | HX35/HX40 use the standard clamp/bolt pattern; WH1E uses a **4-bolt** pattern that drops into HX40-style (incl. Bullseye) housings. |
 | **Turbine inlet flange** | HX35 12 cm twin-scroll is a **T3 pattern** (M8, 3.375" × 1.75" centers). ⚠️ Dodge-sourced castings often have **2 through-holes + 2 threaded holes** — the threaded pair must be drilled out to slip over manifold studs. |
@@ -101,6 +101,29 @@ is exactly why Holset stepped to the HX40 frame instead of fitting a bigger whee
 Past ~65 lb/min, an S300/S400 frame beats stacking parts on an HX35.
 
 ---
+
+## Frame-size intuition
+
+Turbines on hand, for scale:
+
+| Wheel | Inducer | Relative flow area (D²) | Relative rotational inertia (~D⁵) |
+|---|---|---|---|
+| HY35W | 65.5 mm | 1.00× | 1.00× |
+| DPS S362 | 78 mm | 1.42× | ~2.4× |
+| DPS S363 | 80 mm | 1.49× | ~2.7× |
+
+DPS default their S362 to a **78 mm** turbine and the S363 to **80 mm** — larger than
+the generic S300 turbine sizes usually quoted.
+
+The point: flow area scales with D², but **rotational inertia scales with roughly
+D⁵** (mass ∝ D³, radius of gyration ∝ D). A wheel that looks moderately bigger is
+dramatically harder to accelerate. That gap *is* the post-upshift hole that killed
+the big-compound plan — and it's the entire pitch for variable geometry, which
+presents a small effective throat to a big wheel to get the small turbine's response
+with the big turbine's flow ceiling.
+
+**Shop capability note:** lathe access is available and housings have been bored
+in-house, so machining-based options are genuinely on the table, not theoretical.
 
 ## Adjacent: the HE frame
 
