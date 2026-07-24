@@ -65,7 +65,7 @@ equivalences, useful only for cross-shopping:
 
 | Part | Rule |
 |---|---|
-| **Cartridge / CHRA** | Free swap across the entire H1 frame. Oil lines, mounting, drain all common. |
+| **Cartridge / CHRA** | Swaps across the H1 frame. Oil lines, mounting, drain all common. ⚠️ **Exception: the HY35W.** Its turbine rotating assembly is not shared — the 70/60 wheel & shaft (3519336) that fits HX35/HX35W/H1C/WH1C is explicitly *not* sold for the HY35W. See [the 2026-07-24 finding](#️-2026-07-24-the-cores-on-hand-are-hy35w-not-hx35). |
 | **Compressor cover** | Two mounts: **bolted** vs **V-band** (V-band on WH1C, WH1E). Cover contour is wheel-specific. A bigger wheel needs a matched cover **and** machining: bearing housing bore → ~88 mm, backplate from ~84.5 mm out to ~87 mm. |
 | **Turbine housing** | Must match the **turbine wheel** it wraps. Two wheel families: **70/60 straight** (H1C/HX35) and **76/64** (H1E/HX40). An HX40 housing physically bolts over an HX35 wheel but leaves a huge tip gap — fits, doesn't work. |
 | **Turbine wheel** | 12-bl straight 70/60 (HX35) · 12-bl **curved** 65.5/58 (HY35/HE341/HE351) · 12-bl 76/64 (HX40). The curved wheel pairs with the 9 cm undivided housings. |
@@ -135,13 +135,53 @@ so the DPS exhaust adapter makes it a direct bolt-in to the current setup.
 worth it, and repro 12 cm housings generally work fine. Fall back to a genuine
 3532214 only if the casting is wrong.
 
+### ⚠️ 2026-07-24: the cores on hand are HY35W, not HX35
+
+Inspection of the cores turned up **HY35W**, not HX35. This breaks the plan above,
+because the two are *not* in the same turbine-wheel family:
+
+| | HY35W (what's on hand) | HX35 (what the housing needs) |
+|---|---|---|
+| Turbine wheel | **65.5/58, 12 bl curved** | **70/60, 12 bl straight** |
+| Stock housing | 9 cm², **undivided** | 12 cm², divided |
+| Compressor | 54/76.5, 7 bl | 56/82 or 56/76.5 |
+
+**The 12 cm housing is bored for the 70/60 wheel.** Dropping an HY35W cartridge in
+leaves an oversized tip gap — the same failure mode as an HX40 housing over an HX35
+wheel: it bolts up, it doesn't work.
+
+**And you cannot rebuild past it.** AVP's 70/60 turbine wheel & shaft (OEM
+**3519336**, 173.50 mm OAL, 11 mm journal) lists fitment for HX35 / HX35W / H1C /
+WH1C and states explicitly: *"We don't list the HY35W for this item because it will
+not fit the HY35W turbo."* The commonly-repeated explanation is a differing bearing
+housing / shaft length, but that reason is forum inference — the sourced fact is the
+fitment exclusion itself.
+
+So the H1-frame "everything interchanges" rule has a real boundary: **the CHRA
+family is shared, but the HY35W's turbine rotating assembly is not.**
+
+#### Options from here
+
+| Option | Cost | Notes |
+|---|---|---|
+| **A. Source a real HX35 / H1C / WH1C core** | used core | Plan proceeds untouched; the $120 housing stays the right buy. Cheapest path to the stated goal. |
+| **B. Keep HY35W, find a bigger divided housing for the 58/65.5 wheel** | ? | Thin market — the curved-wheel family (HY35/HE341/HE351) is almost exclusively 9 cm undivided. |
+| **C. Rebuild HY35W to a larger turbine wheel + matching housing** | highest | The "67 mm HE351CW-style" upgrade path; aftermarket HX40-style housings exist for HY35/HE341/HE351 *when paired with a 76/67 wheel*. Most money, most machining. |
+
+**Also worth weighing:** the HY35W is a **54 mm compressor on a 9 cm housing** — the
+smallest configuration in the H1 frame, sized for a stock '00–02 automatic. Against
+a ~400 hp / ~45–50 lb/min target it is likely undersized regardless of what housing
+goes on it, which argues for option A on merit and not just on cost.
+
 ### Measurement checklist
 
 Before/after the housing arrives — nobody wants to do this in 37 °C:
 
-- [ ] **Count compressor blades** on both HX35s (fastest tell: 8 bl = 56/82 '95–98
-      12v · 7 bl = 56/76.5 or 54/76.5 '98.5–02 24v)
-- [ ] **Caliper the compressor inducer** — settles the disputed 54 vs 56 mm
+- [x] ~~**Count compressor blades**~~ — done 2026-07-24: cores are **HY35W**, see
+      above. Confirm the *second* core independently; don't assume the pair matches.
+- [ ] **Caliper the compressor inducer** to confirm the HY35W ID (54 mm expected).
+      The other giveaway is the turbine housing: HY35W is **undivided single-entry
+      9 cm**, HX35 is **divided 12 cm**
 - [ ] **Measure intermediate hot pipe** — is it **4"** or **4-3/8" (4.4")**? Decides
       which DPS adapter to order
 - [ ] **Turbine inlet flange holes** on the received housing — 4 through-holes, or
