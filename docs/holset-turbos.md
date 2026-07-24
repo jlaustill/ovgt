@@ -196,7 +196,13 @@ Observed on the HY35W core (2026-07-24), neither identifiable:
 | Marking | Assessment |
 |---|---|
 | `8654-PP` | 4 digits + letter suffix — signature of a **die-cast mold/pattern number**. Foundry identifier, no model information. |
-| `2028600067` | 10 digits, nowhere near Holset's 7-digit format. Likely a supplier lot/traceability number. ⚠️ This pattern is common on **aftermarket/reproduction covers** — if the cover isn't genuine, the wheel inside may not be stock either, which is exactly how a core gets misremembered. |
+| `2028600067` | 10 digits, nowhere near Holset's 7-digit format. Likely a supplier lot/traceability number. |
+
+**Resolved — the markings don't matter here.** The HY35W ID is settled by two
+independent lines of evidence: known provenance (the specific truck it came off, an
+'01 automatic) and physical measurements that match HY35W spec exactly. Casting
+numbers are only the fallback for an unknown-history core with no tag. Closed
+question; don't reopen it on the strength of an unidentified foundry mark.
 
 **For this build, model ID is not actually the thing that matters.** Two
 measurements decide everything:
