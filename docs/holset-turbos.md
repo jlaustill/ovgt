@@ -237,12 +237,21 @@ the truck is used, and should be written down *before* the first pull:
 - TIT ceiling (safety, not sizing): `____`
 - Time-to-boost that counts as "lazy": `____`
 
-#### ⚠️ Baseline validity
+#### Baseline validity
 
-Take the baseline **only on a known-sealed turbo installation.** Prior hard-won
-lesson on this truck: a loose/leaking turbo bleeds drive pressure and produces
-underboost that looks exactly like a sizing problem. Do not out-tune a mechanical
-leak — check the mounting hardware before trusting any sizing conclusion.
+Prior hard-won lesson on this truck: a loose/leaking turbo bleeds drive pressure and
+produces underboost that looks *exactly* like a sizing problem. Do not out-tune a
+mechanical leak.
+
+**Largely addressed:** the turbo now runs **Stage 8 locking fasteners on studs**.
+These lock mechanically via a retaining clip rather than by friction, so they cannot
+back out — which is precisely the prior failure (a turbine bolt that walked all the
+way out). Fastener rotation is off the table as a drive-pressure leak path.
+
+Residual leak paths, if underboost ever reappears: a **crushed or relaxed gasket**,
+a **warped flange**, or a **stretched/cracked stud** — none of which involve a nut
+turning, so Stage 8 won't catch them. Much rarer, but they're what's left to check
+before concluding "turbine too small."
 
 Secondary: at ~4000 ft the pressure ratio for a given manifold pressure is higher
 than sea-level map talk assumes, which pushes operation further up the compressor
