@@ -173,12 +173,52 @@ smallest configuration in the H1 frame, sized for a stock '00–02 automatic. Ag
 a ~400 hp / ~45–50 lb/min target it is likely undersized regardless of what housing
 goes on it, which argues for option A on merit and not just on cost.
 
+### Identifying a used core
+
+**Holset service part numbers are 7 digits** (3532214, 4035199, 3519336). Anything
+else on the castings is not a part number.
+
+**The data tag is the authority.** Riveted to the compressor housing or, on many
+models, the center bearing housing — on HX35/HX40 look *near the compressor outlet
+or on the flat machined pad of the bearing housing*. It carries **model + Cummins/
+Holset part number + serial**. Older H1C/H1E may be **stamped into the casting**
+instead of tagged. VE models (HE351VE) put the plate on the actuator side.
+
+Model format: first letter(s) = frame family (HX / HE / H1 / H2); the number =
+relative compressor size; suffix **`W` or `CW` = conventional wastegated**,
+**`VE` = variable geometry**.
+
+**Casting numbers are secondary** — they can confirm frame family and sometimes the
+housing variant when the tag is long gone, but they are not part numbers.
+
+Observed on the HY35W core (2026-07-24), neither identifiable:
+
+| Marking | Assessment |
+|---|---|
+| `8654-PP` | 4 digits + letter suffix — signature of a **die-cast mold/pattern number**. Foundry identifier, no model information. |
+| `2028600067` | 10 digits, nowhere near Holset's 7-digit format. Likely a supplier lot/traceability number. ⚠️ This pattern is common on **aftermarket/reproduction covers** — if the cover isn't genuine, the wheel inside may not be stock either, which is exactly how a core gets misremembered. |
+
+**For this build, model ID is not actually the thing that matters.** Two
+measurements decide everything:
+
+1. **Turbine wheel exducer** — 58 mm (HY35W family, unusable with the 12 cm
+   housing) vs 60 mm (HX35 family, correct).
+2. **Turbine housing** — undivided single-entry 9 cm (HY35W) vs divided 12 cm
+   (HX35). Visible at a glance, no tools.
+
+A tag is nice confirmation; those two facts are the decision.
+
 ### Measurement checklist
 
 Before/after the housing arrives — nobody wants to do this in 37 °C:
 
-- [x] ~~**Count compressor blades**~~ — done 2026-07-24: cores are **HY35W**, see
-      above. Confirm the *second* core independently; don't assume the pair matches.
+- [x] ~~**Count compressor blades**~~ — done 2026-07-24: first core is **HY35W**,
+      corroborated by provenance (came off an '01 automatic — exactly the HY35W
+      application). See above.
+- [ ] **Second core** (arriving from Dad's, 2026-07-24) — believed HX35W but
+      unverified. ID it independently; don't assume the pair matches. Check the
+      turbine housing first (divided 12 cm = HX35, undivided 9 cm = HY35W), then
+      the data tag, then the turbine exducer.
 - [ ] **Caliper the compressor inducer** to confirm the HY35W ID (54 mm expected).
       The other giveaway is the turbine housing: HY35W is **undivided single-entry
       9 cm**, HX35 is **divided 12 cm**
