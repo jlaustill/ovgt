@@ -42,8 +42,10 @@ Naming: a leading/trailing **`W` means wastegated** (HX35**W**, **W**H1C).
 | **HX40 (6-blade)** | 56/86 or 60/86, 6 bl | 76/64 | 14 / 16 / 18 cm² | bolted | European / industrial |
 | **HX40W** | ~60/86 | 76/64 | 16 or 19 cm², often non-gated, 6-bolt or 4" out | bolted | ISC 8.3, Class 3–8 |
 
-**Disputed:** some sources call the 7-blade HX35 compressor a **54 mm** inducer, not
-56 mm. Measure, don't assume.
+**Disputed — the 7-blade HX35 compressor inducer, 54 vs 56 mm.** Mopar1973Man says
+**56**/76.5; vendor listings for PN 3592766 (a '99–02 7-blade HX35W) say **54**/77.
+Unresolved in the literature. Measure, don't assume — it matters for this build, see
+[the 3592766 core](#-2026-07-24-second-core-is-an-hx35w--build-is-on).
 
 ### cm² is not A/R
 
@@ -257,6 +259,28 @@ Secondary: at ~4000 ft the pressure ratio for a given manifold pressure is highe
 than sea-level map talk assumes, which pushes operation further up the compressor
 map. Factor that in when reading CE against published maps.
 
+### ✅ 2026-07-24: second core is an HX35W — build is on
+
+**PN 3592766 — confirmed genuine Holset HX35W.** Listed identically by multiple
+vendors (TurboTurbos, Goldfarb):
+
+> Model designation **HX35W-E7755M/E12PY11**. Fits **1999–2002 Dodge Ram 2500/3500,
+> Cummins 6BT / ISB 5.9L**. Alternate PNs: 3592767, 3774569, 3800799.
+
+**Turbine: 70/60 mm, 12 blades, 12 cm² T3 twin-entry housing** — exactly the wheel
+the 3591217T housing is bored for. The 12 cm housing plan proceeds on this core.
+
+**Open: compressor inducer, 54 vs 56 mm.** This is a '99–02 application, so it's the
+**7-blade** compressor — and vendor listings for *this specific PN* spec it
+**54/77 mm**, while Mopar1973Man lists the 7-blade HX35 as 56/76.5. The stated build
+target was 56 mm. 54 mm is ~8% less inducer area — not a plan-breaker, and precisely
+the kind of question the logging plan answers, but it is a real deviation from
+target. **Measure it.**
+
+**CHRA marking `353052` does not resolve** — 6 digits, and Holset service numbers
+are 7. Worth re-checking the casting for a seventh character. Not load-bearing: the
+assembly PN already identifies the turbo.
+
 ### Identifying a used core
 
 **Holset service part numbers are 7 digits** (3532214, 4035199, 3519336). Anything
@@ -305,10 +329,10 @@ Before/after the housing arrives — nobody wants to do this in 37 °C:
 - [x] ~~**Count compressor blades**~~ — done 2026-07-24: first core is **HY35W**,
       corroborated by provenance (came off an '01 automatic — exactly the HY35W
       application). See above.
-- [ ] **Second core** (arriving from Dad's, 2026-07-24) — believed HX35W but
-      unverified. ID it independently; don't assume the pair matches. Check the
-      turbine housing first (divided 12 cm = HX35, undivided 9 cm = HY35W), then
-      the data tag, then the turbine exducer.
+- [x] ~~**Second core**~~ — arrived 2026-07-24, **confirmed HX35W**, PN
+      **3592766**. See below.
+- [ ] **Caliper the 3592766 compressor inducer** — 54 mm or 56 mm? Vendor listings
+      for this exact PN say **54/77**; the target spec was 56 mm. Open question.
 - [ ] **Caliper the compressor inducer** to confirm the HY35W ID (54 mm expected).
       The other giveaway is the turbine housing: HY35W is **undivided single-entry
       9 cm**, HX35 is **divided 12 cm**
