@@ -260,12 +260,42 @@ for in backpressure.
 | Too **stiff** (gate stays shut) | HP does all the work — high HP pressure ratio, hot interstage air, HP overspeed exposure, **BPR climbing** |
 | Too **soft** (gate opens early) | HP quits before the LP is carrying = exactly the post-upshift hole this re-size exists to fix |
 
-**Open question — what does the actuator canister sense?** A Holset internal gate
-opens on the pressure fed to its can:
-- plumbed to **HP compressor discharge** → triggers on *total* boost
-- plumbed to the **interstage** → triggers on HP-stage rise only
+#### It's a spring gate — no actuator, no boost reference
 
-Materially different behavior; this is a choice to be made, not a given.
+The stock HX35W uses a boost-referenced pneumatic canister. **This build deletes it**
+in favour of the *spring gate* / "instant spool spring mod": a spring holds the
+wastegate flapper shut, and **exhaust backpressure acting on the flapper area is the
+only thing that opens it.** No boost signal enters the loop anywhere.
+
+This is established compound practice — *"in compound systems specifically, some
+users prefer spring wastegates on the secondary turbo that operate via drive
+pressure rather than boost reference."*
+
+Consequences:
+
+**1. It structurally cannot limit boost.** Boost is not an input. It is a pure
+drive-pressure relief valve. (This is the direct reason the "boost limiter" framing
+above was wrong.)
+
+**2. Sizing is a force balance**, so the starting point is calculable rather than
+trial-and-error:
+
+```
+cracking pressure = F_spring / A_flapper
+```
+
+Measure the flapper diameter, pick the target drive pressure, solve for preload.
+Worked example: a ~1.1" flapper ≈ 0.95 in², so cracking at 45 psi needs ≈ 43 lbf.
+
+**3. It opens progressively, not sharply.** Reported behaviour is early cracking with
+substantially more pressure needed for full open (one account: cracks 3–5 psi, needs
+~30 psi to fully open). Inherent to the design — opening force rises with pressure
+while the spring resists roughly linearly, giving a **modulating relief valve, not a
+threshold switch.** For a smooth ~2k handoff that softness is arguably desirable, but
+expect some bleed earlier than the nominal setpoint.
+
+⚠️ **Not to be confused with a *quick spool valve*** — that's a different device (a
+butterfly restricting the turbine inlet). Web searches conflate the two.
 
 Also: the HX35W brings **HP overspeed protection** that the planned (ungated)
 BorgWarner would not have had.
