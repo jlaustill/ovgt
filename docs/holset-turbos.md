@@ -50,9 +50,13 @@ Naming: a leading/trailing **`W` means wastegated** (HX35**W**, **W**H1C).
 
 **Settled by measurement — the 7-blade HX35 compressor is 54 mm, not 56.** The table
 above follows Mopar1973Man (56/76.5), but PN 3592766 (a '99–02 7-blade HX35W)
-**measured 54 mm** in hand on 2026-07-24, matching the vendor listings (54/77).
-Treat 56 mm as suspect for 7-blade HX35s generally. General lesson: these tables are
-forum-sourced and a caliper outranks all of them.
+measured **54 mm nominal** in hand on 2026-07-24, matching the vendor listings
+(54/77). Treat 56 mm as suspect for 7-blade HX35s generally.
+
+Two lessons: these tables are forum-sourced and a caliper outranks all of them —
+*and* a caliper on an **odd-blade wheel** needs a geometry correction or it lies
+low. Some of the 54-vs-56 confusion in the literature may simply be uncorrected
+tip-to-tip readings.
 
 ### cm² is not A/R
 
@@ -283,9 +287,30 @@ vendors (TurboTurbos, Goldfarb):
 **Turbine: 70/60 mm, 12 blades, 12 cm² T3 twin-entry housing** — exactly the wheel
 the 3591217T housing is bored for. The 12 cm housing plan proceeds on this core.
 
-**RESOLVED — compressor measures 54 mm.** Measured 2026-07-24. This settles the
-54-vs-56 dispute for PN 3592766: the vendor listings (**54/77**) are correct and
-Mopar1973Man's 56/76.5 is wrong for this part. A measured part beats both sources.
+**RESOLVED — compressor is 54 mm nominal.** Measured 2026-07-24 at 52–54 mm across
+the blade tips, which is exactly what a **54 mm** 7-blade wheel reads (see the
+odd-blade correction below). Settles the 54-vs-56 dispute for PN 3592766: the vendor
+listings (**54/77**) are correct and Mopar1973Man's 56/76.5 is wrong for this part.
+
+> #### ⚠️ Measuring an odd-blade compressor wheel
+>
+> With an **odd** blade count there is no blade diametrically opposite another, so
+> calipers across two tips span a **chord, not a diameter** — the reading is always
+> small. Measured value = `D · cos(90°/N)`. Rotating the wheel does not help; every
+> tip pair has identical geometry.
+>
+> | Blades | Factor | Correction (÷ factor) |
+> |---|---|---|
+> | 7 | `cos(12.86°)` = 0.9749 | × **1.0257** |
+> | 9 | `cos(10.00°)` = 0.9848 | × 1.0154 |
+> | 11 | `cos(8.18°)` = 0.9898 | × 1.0103 |
+>
+> So a true 54 mm 7-blade wheel measures **52.6 mm** tip-to-tip; a 52 mm reading
+> back-solves to **53.3 mm** actual. Even-blade wheels (6, 8, 12) have opposed tips
+> and measure true.
+>
+> **Easier method:** caliper the **compressor cover's inducer bore** — a true circle
+> — and subtract ~0.5–0.8 mm total tip clearance.
 
 **Consequence — the two cores share essentially the same compressor.** HY35W is
 54/76.5 7-blade; this HX35W is 54/77 7-blade. For '99–02, HY35W and HX35W differ
@@ -363,8 +388,11 @@ Before/after the housing arrives — nobody wants to do this in 37 °C:
       application). See above.
 - [x] ~~**Second core**~~ — arrived 2026-07-24, **confirmed HX35W**, PN
       **3592766**. See below.
-- [x] ~~**Caliper the 3592766 compressor inducer**~~ — measured **54 mm**
-      2026-07-24. Dispute settled; see above.
+- [x] ~~**Caliper the 3592766 compressor inducer**~~ — 2026-07-24, reads 52–54 mm
+      tip-to-tip = **54 mm nominal** after the 7-blade odd-count correction.
+- [ ] *Optional confirmation:* caliper the **compressor cover inducer bore** (a true
+      circle) and subtract ~0.5–0.8 mm clearance — avoids the odd-blade problem
+      entirely. Only worth doing if the 54 mm figure ever needs to be firm.
 - [ ] **Caliper the compressor inducer** to confirm the HY35W ID (54 mm expected).
       The other giveaway is the turbine housing: HY35W is **undivided single-entry
       9 cm**, HX35 is **divided 12 cm**
