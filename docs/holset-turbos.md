@@ -21,6 +21,12 @@ H1E, WH1E, HX40, HX40W** — same 11 mm journal, 7 mm shaft thread, same oil
 feed/drain. That single fact is why this whole mix-and-match hobby exists. Rebuild
 kits ship as one SKU covering HX35 / HX35W / HY35 / HX40 / HE351.
 
+Directly confirmed in hand: bearing housing **3530521** (82 mm OD, on the 3592766
+HX35W core) is catalogued under both **HX35** and **HX40** assemblies.
+
+⚠️ But see the [HY35W exception](#️-2026-07-24-the-cores-on-hand-are-hy35w-not-hx35)
+— the shared bearing housing does **not** imply a shared turbine rotating assembly.
+
 Naming: a leading/trailing **`W` means wastegated** (HX35**W**, **W**H1C).
 
 ---
@@ -277,9 +283,15 @@ target was 56 mm. 54 mm is ~8% less inducer area — not a plan-breaker, and pre
 the kind of question the logging plan answers, but it is a real deviation from
 target. **Measure it.**
 
-**CHRA marking `353052` does not resolve** — 6 digits, and Holset service numbers
-are 7. Worth re-checking the casting for a seventh character. Not load-bearing: the
-assembly PN already identifies the turbo.
+**Center section: `3530521`** (the last digit is faint on the casting — initially
+misread as 6-digit `353052`). This is the **bearing housing**, 82 mm OD, and it is
+listed under *both* HX35 and HX40 assemblies: HX35W gensets (3597508/3530521),
+HX40M (4035800/3530521), 6CT HX40W, and 1993 6BT. Nice corroboration of the shared-
+frame thesis this document rests on — the same casting number appears under HX35W
+and HX40W assemblies.
+
+Everything on this core is internally consistent and genuine: HX35W assembly
+**3592766** built on the common **3530521** center section.
 
 ### Identifying a used core
 
