@@ -232,18 +232,47 @@ no compressor confound. Clean attribution.
 the truck.** The S472 LP has **no wastegate**, so everything rides on the HX35W's
 internal gate. (Gated HP + ungated LP is a normal compound layout, not an oversight.)
 
-Key mechanic: **the HP gate does not vent to atmosphere — it dumps into the LP
-turbine inlet.** Bypassed energy is handed to the S472, not discarded. So the spring
-sets the **split between stages**, which means handoff rpm and peak boost are *not*
-independent knobs; one spring does both jobs.
+**Key mechanic — the HP gate is a BACKPRESSURE limiter, not a boost limiter.** It
+does not vent to atmosphere; it dumps into the **LP turbine inlet**, so bypassed gas
+arrives at the S472 with its energy intact (no work extracted). Opening the gate
+therefore does two opposing things:
+
+- HP pressure ratio **falls** (less flow through its turbine)
+- LP pressure ratio **rises** (more energy reaching it)
+
+Total boost is the *product* of the two, so these substantially cancel. Some net
+loss to inefficiency remains, but the gate has **nowhere near the boost authority it
+would have on a single turbo.**
+
+What it genuinely controls is **drive pressure**. The HP turbine is the restriction
+that drives manifold pressure up; routing flow around it removes restriction and
+backpressure falls. The energy still gets used downstream — it just stops being paid
+for in backpressure.
+
+> **This makes the spring a mechanical BPR limiter — and BPR is already the control
+> variable** ([[project_bpr_boost_control]], PI target 1.5). The spring is now the
+> hardware doing the job the vanes used to. Design criterion: preload so the gate
+> begins cracking where drive pressure would otherwise push BPR past target, then
+> refine from the logs.
 
 | Spring | Effect |
 |---|---|
-| Too **stiff** (gate stays shut) | HP does all the work — high HP pressure ratio, hot interstage air, HP overspeed exposure, drive pressure climbing |
+| Too **stiff** (gate stays shut) | HP does all the work — high HP pressure ratio, hot interstage air, HP overspeed exposure, **BPR climbing** |
 | Too **soft** (gate opens early) | HP quits before the LP is carrying = exactly the post-upshift hole this re-size exists to fix |
 
-This also means the HX35W brings **HP overspeed protection** that the planned
-BorgWarner (ungated) would not have had.
+**Open question — what does the actuator canister sense?** A Holset internal gate
+opens on the pressure fed to its can:
+- plumbed to **HP compressor discharge** → triggers on *total* boost
+- plumbed to the **interstage** → triggers on HP-stage rise only
+
+Materially different behavior; this is a choice to be made, not a given.
+
+Also: the HX35W brings **HP overspeed protection** that the planned (ungated)
+BorgWarner would not have had.
+
+> ⚠️ An earlier revision of this section called the HP gate a boost limiter and
+> claimed handoff and peak boost were coupled through one spring. That was wrong —
+> it ignored the energy handoff to the LP. Superseded.
 
 **Method:** install → log → adjust wastegate spring → decide bigger or smaller. The
 spring is the only tuning axis that doesn't require pulling the turbo, so it gets
