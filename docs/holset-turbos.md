@@ -48,16 +48,16 @@ Naming: a leading/trailing **`W` means wastegated** (HX35**W**, **W**H1C).
 | **HX40 (6-blade)** | 56/86 or 60/86, 6 bl | 76/64 | 14 / 16 / 18 cm² | bolted | European / industrial |
 | **HX40W** | ~60/86 | 76/64 | 16 or 19 cm², often non-gated, 6-bolt or 4" out | bolted | ISC 8.3, Class 3–8 |
 
-**Still disputed — the 7-blade HX35 compressor inducer, 54 vs 56 mm.** Mopar1973Man
-says **56**/76.5; vendor listings for PN 3592766 (a '99–02 7-blade HX35W) say
-**54**/77. An in-hand attempt on 2026-07-24 could not resolve it: tip-to-tip
-calipering on a 7-blade wheel is geometrically unreliable and the corrected range
-straddles both answers.
+**Settled — the 7-blade HX35 compressor is 54 mm, not 56.** The table above follows
+Mopar1973Man (56/76.5), which is **wrong**; the Holset specs for PN 3592766 confirm
+**54**/77, matching the vendor listings. Treat 56 mm as suspect for 7-blade HX35s
+generally.
 
-Likely explanation for the dispute itself: **uncorrected or half-corrected
-tip-to-tip readings.** A true 56 mm 7-blade measures 53.2 mm across the tips — close
-enough to "54" that a casual measurement publishes the wrong number. Treat *every*
-compressor figure in these forum tables as potentially a couple of mm low.
+Likely explanation for the dispute: **uncorrected tip-to-tip caliper readings.** A
+7-blade wheel measures ~5 % under its true diameter across the tips (see below), so
+a casual measurement of a 56 mm wheel reads ~53 mm — close enough to "54" to get
+published either way. Treat *every* compressor figure in these forum tables as
+potentially a couple of mm off, in either direction.
 
 ### cm² is not A/R
 
@@ -212,27 +212,51 @@ goes on it, which argues for option A on merit and not just on cost.
 
 ### Test plan: stock-spec baseline, then iterate
 
-**Configuration under test:** **54 mm** compressor (assumed — see the
-[open measurement](#-2026-07-24-second-core-is-an-hx35w--build-is-on)) · 70/60
-turbine · **divided 12 cm²** housing (PN 3592766 core + 3591217T housing).
-Deliberately the stock HX35 spec — the single best-documented point in the whole
-catalog, so deviations are interpretable rather than mysterious.
+**Role: HP stage of a compound**, fed by the **S472** LP stage (kept for its
+2200-rpm handoff). Target is a smooth ~2k transition.
 
-If 54 mm holds, the outgoing HY35W carries the *same* compressor, making this a
-**hot-side-only change** — turbine 58→60 mm exducer, housing 9 cm undivided → 12 cm
-divided, no compressor confound. Clean attribution, and a better experiment than the
-originally-intended 56 mm would have given. If it turns out to be 56 mm, the swap
-changes both ends and attribution gets muddier.
+**Configuration under test:** **54 mm** compressor · 70/60 turbine · **divided
+12 cm²** housing (PN 3592766 core + 3591217T housing). Deliberately the stock HX35
+spec — the single best-documented point in the whole catalog, so deviations are
+interpretable rather than mysterious.
+
+**This replaces a planned purchase.** The leading HP-downsize candidate was a
+**BorgWarner 12709095019 (52 mm compressor)**; this HX35W is a 54 mm in the same
+class, already owned. No-cost stand-in — see [[project_compound_hp_downsize]].
+
+The outgoing HY35W carries the *same* 54 mm compressor, making this a **hot-side
+-only change** — turbine 58→60 mm exducer, housing 9 cm undivided → 12 cm divided,
+no compressor confound. Clean attribution.
+
+**Primary tuning lever: the wastegate spring.** On a compound HP stage the gate
+governs how much exhaust bypasses the HP turbine to feed the LP — i.e. it *is* the
+handoff knob, not just a boost limiter.
 
 **Method:** install → log → adjust wastegate spring → decide bigger or smaller. The
 spring is the only tuning axis that doesn't require pulling the turbo, so it gets
 exercised first.
 
-**Sizing sanity:** at 54 mm the compressor is worth roughly **45–50 lb/min** against
-a ~45–50 lb/min target for 400 hp — operating *at* the ceiling, not inside it. At
-56 mm it'd be ~50–55 lb/min, i.e. genuine margin. Either way: if CE falls off at
-peak flow, the compressor is the constraint and the answer is a billet 60–62 mm
-wheel, not a different turbine.
+**Sizing sanity — this is the HP stage of a compound, fed by the S472.** That
+changes the analysis completely; single-turbo flow figures do not apply.
+
+Compressor maps are limited by **corrected** flow, not actual mass flow:
+
+```
+corrected flow = ṁ · √(T/Tref) / (P/Pref)
+```
+
+Fed ~2:1 pressurized air from the LP stage, the HP compressor's corrected flow is
+roughly **halved** for the same actual mass flow. The rising interstage temperature
+claws some back (the √T term, ~1.13 at typical temps), netting **≈1.8× more actual
+mass flow capability**. So the 54 mm wheel — worth ~45–50 lb/min as a single —
+passes on the order of **80–90 lb/min** as an HP stage.
+
+Against a ~45–50 lb/min engine requirement that is comfortable, not marginal. **The
+billet 60–62 mm upgrade path is very likely moot** for this application.
+
+> ⚠️ Earlier revisions of this section analyzed the HX35 as a standalone turbo and
+> concluded it was operating "at the ceiling." That was wrong — it ignored the LP
+> stage. Superseded.
 
 #### Decision criteria — pre-register these before collecting data
 
@@ -292,14 +316,12 @@ vendors (TurboTurbos, Goldfarb):
 **Turbine: 70/60 mm, 12 blades, 12 cm² T3 twin-entry housing** — exactly the wheel
 the 3591217T housing is bored for. The 12 cm housing plan proceeds on this core.
 
-**Compressor: 54 mm per the vendor listings — measurement NOT yet conclusive.**
-Tip-to-tip readings on 2026-07-24 came in at 52–54 mm, which after the 7-blade
-odd-count correction back-solves to **54.7–56.8 mm** — spanning both candidate
-specs. The caliper-on-blades method cannot settle 54 vs 56 on this wheel.
+**Compressor: 54 mm — CONFIRMED from the Holset specs** (located 2026-07-24). The
+vendor listings (54/77) are correct; Mopar1973Man's 56/76.5 is wrong for this part.
 
-Working assumption is **54 mm**, on the strength of the vendor listings for PN
-3592766 (54/77) rather than the measurement. **Pending: cover-bore measurement**
-(planned 2026-07-25 morning) to make it firm.
+In-hand calipering could not have settled this — tip-to-tip readings of 52–54 mm
+correct to 54.7–56.8 mm, straddling both candidates. Documentation beat measurement
+here; see the odd-blade note below for why.
 
 > #### ⚠️ Measuring an odd-blade compressor wheel
 >
@@ -411,11 +433,9 @@ Before/after the housing arrives — nobody wants to do this in 37 °C:
       application). See above.
 - [x] ~~**Second core**~~ — arrived 2026-07-24, **confirmed HX35W**, PN
       **3592766**. See below.
-- [~] **Caliper the 3592766 compressor inducer** — 2026-07-24 tip-to-tip readings
-      52–54 mm are **inconclusive** (correct to 54.7–56.8 mm, straddling both specs).
-- [ ] **Measure the compressor cover inducer bore** (planned 2026-07-25 AM) — a true
-      circle, sidesteps the odd-blade problem. Subtract ~0.5–0.8 mm tip clearance.
-      This is what actually settles 54 vs 56 mm.
+- [x] ~~**Compressor inducer, 54 vs 56 mm**~~ — **54 mm**, settled 2026-07-24 from
+      the Holset specs. Calipering was inconclusive (52–54 mm tip-to-tip corrects to
+      54.7–56.8 mm); the documentation settled it, not the measurement.
 - [ ] **Caliper the compressor inducer** to confirm the HY35W ID (54 mm expected).
       The other giveaway is the turbine housing: HY35W is **undivided single-entry
       9 cm**, HX35 is **divided 12 cm**
