@@ -228,9 +228,22 @@ The outgoing HY35W carries the *same* 54 mm compressor, making this a **hot-side
 -only change** — turbine 58→60 mm exducer, housing 9 cm undivided → 12 cm divided,
 no compressor confound. Clean attribution.
 
-**Primary tuning lever: the wastegate spring.** On a compound HP stage the gate
-governs how much exhaust bypasses the HP turbine to feed the LP — i.e. it *is* the
-handoff knob, not just a boost limiter.
+**Primary tuning lever: the wastegate spring — and it is the ONLY boost control on
+the truck.** The S472 LP has **no wastegate**, so everything rides on the HX35W's
+internal gate. (Gated HP + ungated LP is a normal compound layout, not an oversight.)
+
+Key mechanic: **the HP gate does not vent to atmosphere — it dumps into the LP
+turbine inlet.** Bypassed energy is handed to the S472, not discarded. So the spring
+sets the **split between stages**, which means handoff rpm and peak boost are *not*
+independent knobs; one spring does both jobs.
+
+| Spring | Effect |
+|---|---|
+| Too **stiff** (gate stays shut) | HP does all the work — high HP pressure ratio, hot interstage air, HP overspeed exposure, drive pressure climbing |
+| Too **soft** (gate opens early) | HP quits before the LP is carrying = exactly the post-upshift hole this re-size exists to fix |
+
+This also means the HX35W brings **HP overspeed protection** that the planned
+BorgWarner (ungated) would not have had.
 
 **Method:** install → log → adjust wastegate spring → decide bigger or smaller. The
 spring is the only tuning axis that doesn't require pulling the turbo, so it gets
