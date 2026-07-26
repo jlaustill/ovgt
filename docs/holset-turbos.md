@@ -375,9 +375,21 @@ blades must use eddy current and cost accordingly. Retrofit would need a boss in
 bearing housing, a ground flat on the HX35 shaft, and **rebalancing on a VSR machine**
 — the balancer, not the machining, is the blocker.
 
-**Next-step candidate if the HX35 proves mis-sized:** BorgWarner **S257** (or
-similar), which brings a speed-sensor provision along with it. One variable at a
-time — install, drive, evaluate, *then* consider a frame change.
+**If the HX35 proves *correctly* sized:** BorgWarner **S257** is the upgrade path —
+it's near-identical in size to the HX35 (57 mm vs 54 mm compressor, same class), so
+it isn't a re-size at all. It's the *same* turbo with a speed-sensor provision and
+modern wheel design. I.e. the S257 is the **"just right" confirmation buy**, not the
+fallback for a mis-size.
+
+Decision tree:
+
+| HX35 verdict | Next move |
+|---|---|
+| Too big | Smaller frame |
+| Too small | Larger frame |
+| **Just right** | **S257** — same size, gains the speed sensor |
+
+One variable at a time: install, drive, evaluate, *then* change anything.
 
 #### Baseline validity
 
