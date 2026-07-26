@@ -357,6 +357,28 @@ the truck is used, and should be written down *before* the first pull:
 - TIT ceiling (safety, not sizing): `____`
 - Time-to-boost that counts as "lazy": `____`
 
+#### No turbo speed sensor — accepted, not a blocker
+
+The H1 frame has no speed-sensor provision (modern S300SX-E / EFR / G-series ship
+with a machined boss). **Deliberately accepted:** turbo speed was only ever a dash
+display on this truck and was **never a control input to OVGT**, so nothing in the
+firmware regresses without it. Overspeed remains inferred from `CE drop + COT rise at
+constant BR`.
+
+Retrofit was investigated and rejected as not worth it. For the record: the Holset
+speed sensor (HE351VE / HE300VE/VG / HE400VG / HE451VE — Cummins PNs 5550064,
+4032068, 5327846, 5325947, R8445964AA) is **not** a compressor-cover part. It's a
+**variable reluctance sensor targeting a ground flat on the turbo shaft** — hence
+"Turbine *Shaft* Speed Sensor." VR needs ferrous material, which is why it reads the
+steel shaft rather than the aluminium blades, and why lab systems that *do* count
+blades must use eddy current and cost accordingly. Retrofit would need a boss in the
+bearing housing, a ground flat on the HX35 shaft, and **rebalancing on a VSR machine**
+— the balancer, not the machining, is the blocker.
+
+**Next-step candidate if the HX35 proves mis-sized:** BorgWarner **S257** (or
+similar), which brings a speed-sensor provision along with it. One variable at a
+time — install, drive, evaluate, *then* consider a frame change.
+
 #### Baseline validity
 
 Prior hard-won lesson on this truck: a loose/leaking turbo bleeds drive pressure and
