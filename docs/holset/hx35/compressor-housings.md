@@ -43,7 +43,49 @@ question — Gillett `CH-10` (60 mm 7-blade upgrade housing **and** wheel), and 
 60 mm billet + matched cover already noted at `docs/holset-turbos.md:97`. Buying the pair
 guarantees the contour matches the wheel.
 
+## ✅ DECISION 2026-09-12: keep the 54 mm wheel, cut the tabs off the existing cover
+
+**Staying on the 7-blade 54×78 compressor already on the core (`3592766`). The wastegate
+tabs get cut off that cover rather than buying a tab-free 56 mm cover and wheel.**
+
+Rationale: the 54 mm is close enough to generate a real operating dataset, and the truck
+already carries 10 Hz CE / BPR / boost telemetry. The 52 vs 60 lb/min conflict below cannot
+be settled from the available sources — but it *can* be settled from logged map coverage
+against the ~45–50 lb/min target. Spending ~$160 first would be buying on numbers this
+document already flags as untrustworthy. Consistent with the *"stock-spec baseline, then
+iterate"* test plan in `docs/holset-turbos.md`.
+
+**This closes the 56 mm question for now.** It is deferred, not abandoned — the swap is a
+cover-and-wheel pair whenever data justifies it, and a cut-up 54 mm cover costs nothing to
+walk away from at that point.
+
+### Cutting the tabs — cautions
+
+1. **Confirm what is actually fouling first.** The complaint was the spring gate "running
+   into the compressor cover." If it contacts the **tabs**, cutting fixes it; if it contacts
+   the **scroll body**, cutting achieves nothing. Mock it up and mark the contact point
+   before cutting.
+2. **Wall thickness is the one real hazard.** The boss may blend into the scroll wall rather
+   than stand proud of it. Cutting through breaches the pressure boundary — a boost leak on
+   the HP stage, which would then get chased as a phantom fault. **Probe the thickness
+   first; leave the stubs proud rather than flush if unsure.** Flush is cosmetic, intact is
+   functional.
+3. **Cover off the turbo, cut on the bench, wash out completely.** Aluminium swarf into the
+   compressor wheel ends the wheel.
+4. Cast aluminium — cutoff wheel, die grinder or bandsaw all work. Irreversible, but this
+   is the common cover and replacements are cheap.
+
+### Still open regardless of this decision
+
+Cutting tabs does **not** substitute for the turbine housing. A 12 cm² divided housing with
+a **turbine-side** gate is still required — `3532214` (~$599) or the `3591217` casting
+(~$120). See [`turbine-housings.md`](turbine-housings.md).
+
 ## Sourcing a 56 mm cover + wheel (surveyed 2026-09-12)
+
+> ℹ️ Superseded by the decision above; retained because it documents the tab-free options
+> and their verification, which matter again if the 56 mm swap is revisited.
+
 
 The on-hand core is 7-blade 54 mm, so **both the wheel and the cover must be bought** —
 they are not separable decisions. Prices are a snapshot; eBay listings move.
