@@ -90,6 +90,75 @@ has not been independently confirmed for that casting.
 | 4045764 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE.H1C` |
 | 4048561 | HX35W | 70* | 60* | ? | ? | likely WG | ? | ? | catalog only | `HOUSING,TURBINE.HX35W.PERMANENT ASS` (description truncated in source) |
 
+## What this experiment is actually testing (2026-09-12)
+
+**The objective is turbine-side sizing, not compressor-side.** The question is whether the
+**70/60 wheel is too small or correctly sized for HP duty** in the compound, to be answered
+from logged **spool-up, EGT and backpressure** — then the next step gets chosen on data.
+
+The 54 mm compressor decision in [`compressor-housings.md`](compressor-housings.md) is
+therefore not a compromise, it is a **held constant**. Keeping the compressor fixed while
+the turbine is under test is the right design.
+
+### ⚠️ The confound: three different faults produce the same BPR signature
+
+`docs/holset-turbos.md:264` already states that a **too-stiff spring** causes *"BPR
+climbing."* So does an undersized turbine wheel, and so does an undersized housing. All
+three push drive pressure the same direction, and **high BPR alone cannot tell them apart:**
+
+| Cause | Signature |
+|---|---|
+| Turbine wheel too small | BPR climbs at high flow, EGT up, spool fast |
+| Housing A/R too small | BPR climbs at high flow, EGT up, spool fast |
+| Spring preload too stiff | BPR climbs — *per the existing table at `:264`* |
+
+### ⚠️ And there is no wastegate position feedback
+
+The build deletes the pneumatic canister for a pure spring gate (`docs/holset-turbos.md:267`),
+so **nothing reports gate position.** The decisive discriminator — *"is the gate already
+wide open and BPR still high?"* (turbine genuinely too small) versus *"is the gate barely
+cracking?"* (spring too stiff) — is not currently observable.
+
+**Cheapest way to separate them: a spring-preload sweep.** Run the same load case across
+preloads and watch BPR.
+- BPR falls as preload is reduced → **the spring was the binding constraint**, not the wheel.
+- BPR stays high across the whole preload range → **the turbine side is genuinely the
+  restriction.** Only then is "too small" established.
+
+Requires no new hardware. A gate-position sensor on the arm would settle it directly and is
+worth considering if the sweep proves ambiguous.
+
+### The housing is the cheap second data point — test it before condemning the wheel
+
+Testing "the 70/60" actually means testing **70/60 in a specific A/R**. The wheel and the
+housing are separate variables and this reference now documents genuine options at three
+sizes on the same wheel:
+
+| Step | PN | Size | Gate |
+|---|---|---|---|
+| 1 | `3532214` / `3591217` | **12 cm²** | wastegated, turbine-side actuator |
+| 2 | `3537021` | **14 cm²** | non-gated (~$307) |
+| 3 | `3521927` | **16 cm²** | non-gated (~$186) |
+
+If 12 cm² proves too restrictive, **the next step is 14 cm² on the same wheel** — far cheaper
+than a different turbo, and it isolates A/R from wheel size. Only if a larger A/R still
+can't hold BPR is the *wheel* the problem. ⚠️ Note steps 2 and 3 are **non-gated**, which
+`docs/holset-turbos.md:235` says removes the only boost control on the truck — viable as a
+back-to-back test, not as a configuration to leave installed.
+
+### Pass/fail criterion already exists
+
+**BPR = 1.5** is the existing PI setpoint ([[project_bpr_boost_control]],
+`docs/holset-turbos.md`). If the 70/60 in 12 cm² cannot hold BPR at or under target at the
+flow the truck actually runs — *with the gate confirmed open* — it is too small.
+
+### Sensor gap: TOT
+
+Turbine **outlet** temperature is on the sensor roadmap but not yet fitted. Drive pressure
+plus pre-turbine EGT gives "too small / not too small"; adding TOT gives expansion ratio and
+turbine efficiency, turning a judgement call into a number. For a turbine-sizing experiment
+specifically, **TOT is the single sensor that would most improve the answer.**
+
 ## Meets the current requirement (2026-09-12)
 
 **Requirement:** 12 cm² · 70/60 wheel · divided/dual-scroll · and either **no wastegate**
