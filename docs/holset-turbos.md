@@ -96,7 +96,7 @@ equivalences, useful only for cross-shopping:
 |---|---|
 | **Billet compressor wheels** | 60 mm billet + matched cover (HX35/40, Fenley) · BAE 62/86 and 66/84 · DAP 7+7 billet HX35 (repl. 3599649) · HX40 11+0 67×89×95 billet · Wicked Wheel / WW2 (reblade of stock) |
 | **Turbine wheels** | 10-blade 67/76 upgrade (H1C/H1E/HX35/HX40) · Super40 10-bl 64/76 · Mamba D5 64/76 5+5 · AVP wheel+shaft for HX35/HX35W/HY35/H1C |
-| **Turbine housings** | Bullseye (BEP) T3 .55 / .70, stainless .70 A/R w/ 3" V-band · T3 .82 open-scroll non-gated for the 70/60 wheel · Turbo Lab HX35 & HX40 housings · PDP 14 cm non-gated (H1C/HX35, '89–02) · OEM 16 cm V-band (4038909H) · Super HX40 T3 twin-entry 14/16/18 cm² |
+| **Turbine housings** | Bullseye (BEP) T3 .55 / .70, stainless .70 A/R w/ 3" V-band · T3 .82 open-scroll non-gated for the 70/60 wheel · Turbo Lab HX35 & HX40 housings · PDP 14 cm non-gated (H1C/HX35, '89–02) · OEM 16 cm non-gated (**3521927**, sold as 3521927H) · Super HX40 T3 twin-entry 14/16/18 cm² |
 | **Complete upgraded turbos** | Fleece **Cheetah** HX35 63 mm (~650 hp, 40–45 psi) · Industrial Injection PhatShaft · CPP drop-ins · Turbo Lab 67 mm HE351CW kit (~750 hp) · Speeding Parts Super HX40 Competition (65/75 turbine, 14/16/18 cm) |
 
 ### How many combinations, really
@@ -163,10 +163,14 @@ so the DPS exhaust adapter makes it a direct bolt-in to the current setup.
 
 ### Part number verification (2026-07-24)
 
+> 📘 Full 70/60-family housing list (28 catalogued part numbers) and the lookup
+> method live in [`holset/hx35/turbine-housings.md`](holset/hx35/turbine-housings.md);
+> the raw Holset cross-reference is archived at [`holset/jhdiesel-full-catalog.tsv`](holset/jhdiesel-full-catalog.tsv).
+
 | PN | Verdict |
 |---|---|
 | **3532214** | ✅ **CONFIRMED.** Multiple independent vendors list it identically: *"Holset 12cm Wastegated HX35 Turbine Housing. Fits 1988–1998 Dodge Cummins 5.9L 12V with HX35, H1C, or WH1C. **Long housing.** Also fits 1998–2002 if you remove the V-band flange (5 bolts) and bolt the elbow directly. **Actuator is contained on the turbine side and does not need to bolt to compressor housing.**"* Bored for the 70/60 wheel, divided, T3 inlet. ~**$599** at Diesel Auto Power. |
-| **3591217T** | ⚠️ **UNVERIFIED.** Absent from both major public Holset PN references (Boost Lab, J&H Diesel). Only web trace is an eBay listing titled *"**Unmarked** Cummins Holset 3591217 Turbo Turbine Exhaust"* — unmarked = no Holset number cast in. The **"T" suffix is not a Holset convention** (genuine service parts use **"H"**: 3537817**H**, 4038909**H**). Almost certainly an **aftermarket reproduction** of the 3532214; the "interchange/superseded" fields are the *seller's* claim, not a Holset supersession record. ~**$120** on eBay. |
+| **3591217T** | ⚠️ **UNVERIFIED — but the number itself may well be genuine.** The only web trace is an eBay listing titled *"**Unmarked** Cummins Holset 3591217 Turbo Turbine Exhaust"* — unmarked = no Holset number cast in. The **"T" suffix is not a Holset convention** (genuine service parts use **"H"**: 3537817**H**, 3521927**H**). Those two facts, plus a single listing against 3532214's multi-vendor agreement, are the whole case against it. ~**$120** on eBay. — **2026-09-12 correction:** an earlier revision led with *"absent from both major public Holset PN references (Boost Lab, J&H Diesel)"*. That argument is withdrawn: **3532214 is absent from both references too**, so absence discriminates nothing. Worse, the two are not independent — Boost Lab is a ~379-row truncation of the same dataset J&H serves in full (4,080 rows). And `3591217` falls inside a block where Holset was actively assigning turbine-housing numbers (`3591132` HOUSING,TURBINE; `3591155` HOUSING,TURBINE.HX35W.ASSY; `3591164` HOUSING,TURBINE.HX40W.ASSY), which mildly *supports* it being a real casting number that an aftermarket reproducer copied. See [`holset/hx35/turbine-housings.md`](holset/hx35/turbine-housings.md). |
 
 **Decision:** buy the **3591217T** first. At 5× the price difference the gamble is
 worth it, and repro 12 cm housings generally work fine. Fall back to a genuine
@@ -587,7 +591,7 @@ catalog. Verify by measuring.
 - [DSMtuners — Holset wheel sizes & trim](https://www.dsmtuners.com/threads/holset-wheel-sizes-and-trim-info.428146/) · [HX35 housing options](https://www.dsmtuners.com/threads/hx35-turbine-housing-options.454462/) · [HX35 V-band outlet](https://www.dsmtuners.com/threads/hx35-turbine-housing-v-band.432719/)
 - [d-series — Holset specs HY/HX/H1C/H1E](https://www.d-series.org/threads/holset-turbo-specs-hy-hx-h1c-wh1c-h1e-wh1e.120686/)
 - [The Truck Stop — HX40W / non-gated / Super40](https://www.thetruckstop.us/forum/threads/holset-hx40w-non-gated-hx40-super-hx40.43524/)
-- [Diesel Auto Power — 3532214 listing](https://www.dieselautopower.com/12cm-wastegated-hx35-turbine-housing-3532214) · [16 cm V-band HX35 4038909H](https://www.dieselautopower.com/hx35-4038909h)
+- [Diesel Auto Power — 3532214 listing](https://www.dieselautopower.com/12cm-wastegated-hx35-turbine-housing-3532214) · [4038909H — complete HX35/H1C turbo w/ 16 cm non-WG housing, *not* a bare housing](https://www.dieselautopower.com/hx35-4038909h)
 - [DieselTuff — 12 cm wastegated H1C/HX35](https://www.dieseltuff.com/product/holset-12cm-wastegated-housing-for-h1c-or-hx35/)
 - [Diesel Power Source — HX35/HX40/HY35 exhaust adapter](https://www.dieselpowersource.com/hx35-hx40-hy35-turbo-exhaust-adapter)
 - [Boost Lab — Holset PN reference](https://www.theboostlab.com/holset-part-numbers/) · [J&H Diesel — Holset PN reference](https://jhdiesel.com/holset-part-number-reference/)
