@@ -43,6 +43,47 @@ question — Gillett `CH-10` (60 mm 7-blade upgrade housing **and** wheel), and 
 60 mm billet + matched cover already noted at `docs/holset-turbos.md:97`. Buying the pair
 guarantees the contour matches the wheel.
 
+## Sourcing a 56 mm cover + wheel (surveyed 2026-09-12)
+
+The on-hand core is 7-blade 54 mm, so **both the wheel and the cover must be bought** —
+they are not separable decisions. Prices are a snapshot; eBay listings move.
+
+| Option | Price | What it gets | Notes |
+|---|---|---|---|
+| **Wheel only** | **$45–50** | 56×83 8-blade factory wheel, balanced | Seller *jackassturbo* states it plainly: *"Fits 1996–1998 Dodge Ram 5.9 Cummins HX35… **Does not fit** factory HX35 turbo on 1999–2002 manual"* — independent confirmation of the generation rule above. Still needs a tab-free cover |
+| **Cover + wheel** ⭐ | **$159.99** | Compressor housing **and** 56 mm 8-blade wheel | *"Compressor housing with 4" inlet and vband discharge flange for HX35/40 bearing housings and includes 8 blade cast aluminum 56mm inducer compressor wheel."* Fort Collins, CO. **Tab-free — visually confirmed** (see below) |
+| **Complete '96–98 turbo** | **~$312–331** | Wheel + tab-free cover + **12 cm turbine housing with turbine-side gate** | Aftermarket reproduction units, not genuine Holset. But this is the generation that solves *both* open problems at once — worth pricing against `3532214` alone at ~$599 |
+| ❌ "Supercore" listings | $199–249 | — | The ones found are **52 mm**, not 56 mm. Wrong wheel. Do not buy on the word "supercore" alone |
+
+### ✅ Tab-free confirmed by photo, not by marketing copy
+
+Listing photos of the $159.99 cover were downloaded and inspected directly. **The housing
+carries no wastegate actuator tabs, bosses or drilled ears anywhere on the scroll or the
+outer face.** Both faces are visible across the photo set. This is the first item in this
+whole reference confirmed by an actual image rather than seller text.
+
+Also visible: a **V-band discharge flange**, a large **4" inlet**, and a cast/machined data
+pad reading `P/N:4761339  S/N:1161530182212`.
+
+⚠️ **`4761339` is not a Holset number.** It is absent from the cross-reference, and more
+tellingly the catalog contains **no `476xxxx` prefix at all** (its prefixes run 28, 30–32,
+35–40, 43, 48–49, 52–53). Unlike `3591217`, which sat inside a dense Holset block, this
+number falls outside the numbering space entirely — so this is an **aftermarket housing**.
+For this purpose that is not a defect: aftermarket performance covers are *why* it has no
+tabs. But it is not a genuine Holset casting and should not be recorded as one.
+
+⚠️ **Two things to check before buying this specific item:**
+1. **Blade count.** The listing says 8-blade; the wheel in the photo appears to show more
+   than eight. The top-down angle and shadows make it unreliable to count — ask the seller
+   for a straight-on shot and count them.
+2. **Casting damage.** A close-up of the bearing-housing register shows a **gouge / chipped
+   area on the machined outer step**. It may be cosmetic, but that face locates and seals
+   against the bearing housing. Ask about it.
+
+⚠️ **Plumbing changes.** A 4" inlet and V-band discharge is not the stock arrangement. In
+the compound layout the HP compressor inlet is fed by the S472 LP discharge, so a large
+inlet is not itself a problem — but the connections will need to be made to suit.
+
 ## Part numbers
 
 `?` means *not yet sourced*, never *not applicable*. Per-PN compressor-housing specs are as
