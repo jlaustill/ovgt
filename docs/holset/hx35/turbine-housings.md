@@ -47,8 +47,8 @@ Three tiers, because no single source does both jobs:
    (`3521927H`, `3537817H`). A `T` suffix is not a Holset convention and indicates an
    aftermarket reproduction (see `3591217T` in `docs/holset-turbos.md:169`).
 
-**Most cells below are `?`.** Tier 1 returned all 28 numbers; tier 2 returned data for
-only two of them. Per-casting specs for OEM industrial H1C housings are essentially
+**Most cells below are `?`.** Tier 1 returned all 28 numbers; tier 2 has so far returned
+data for four (`3521927` 16 cm, `3524123` 12 cm, `3537021` 14 cm, plus partial elsewhere). Per-casting specs for OEM industrial H1C housings are essentially
 absent from the public web. `?` means *not yet sourced*, never *not applicable* —
 do not fill these in from inference.
 
@@ -63,7 +63,7 @@ has not been independently confirmed for that casting.
 |---|---|---|---|---|---|---|---|---|---|---|
 | 3519409 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
 | 3520730 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE.H1C`; one search hit describes it as a *water-cooled* H1C turbine housing — unconfirmed, and water-cooling is normally a bearing-housing trait, so treat as suspect |
-| 3521927 | H1C | 70* | 60* | **16 cm²** | ? | **non-gated** | ? | V-band (or cast elbow) | **vendor-confirmed** | `HOUSING,TURBINE H1C`. Sold as **3521927H** — H suffix passes the genuineness rule. "Fits 1988–1998 Dodge Cummins 5.9L 12V with HX35, H1C, or WH1C. Also fits 1998–2002 if the current housing has a V-band flange or a different cast elbow is used." ~$186. Thoroughbred adds: "Does not work with 2000–2002 Automatic Trucks" |
+| 3521927 | H1C | 70* | 60* | **16 cm²** | ? | **non-gated** | ? | V-band (or cast elbow) | **vendor-confirmed** | `HOUSING,TURBINE H1C`. Sold as **3521927H** — H suffix passes the genuineness rule. "Fits 1988–1998 Dodge Cummins 5.9L 12V with HX35, H1C, or WH1C. Also fits 1998–2002 if the current housing has a V-band flange or a different cast elbow is used." ~$186 ($185.68 at Diesel Auto Power). Thoroughbred adds: "Does not work with 2000–2002 Automatic Trucks" |
 | 3522743 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
 | 3522744 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
 | 3522746 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
@@ -71,24 +71,85 @@ has not been independently confirmed for that casting.
 | 3523048 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
 | 3523242 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
 | 3523243 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
-| 3524123 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
+| 3524123 | H1C | 70* | 60* | **12 cm²** | **divided** (twin entry) | **non-gated** | T3 | ⚠️ **not the 5-bolt flange** — see below | **vendor-confirmed** | `HOUSING,TURBINE H1C`. "Holset 12cm Non-Wastegated Turbine Housing. Fits 1988–1998 Dodge Cummins 5.9L 12V With HX35, H1C, or WH1C. **Short housing.**" ~$253 at Diesel Auto Power. Gillett sells the same casting as **GDS TH-01** — *"Genuine, Holset (Cummins Turbo Technologies) 12cm2 short outlet, Non-Wastegated Turbine housing for H1C, WH1C, HX35 & HX35W"*, **twin entry**, $305; adds *"direct fit 1988–1993; fits 1994–2002 with modifications (requiring exhaust repositioning)."* |
 | 3524425 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
 | 3525130 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
 | 3525691 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
 | 3532676 | WH1C | 70* | 60* | ? | ? | likely WG | ? | ? | catalog only | `HOUSING,TURBINE.WH1C.ASSY`. Leading/trailing **W = wastegated** (`docs/holset-turbos.md:30`), so gated is a naming inference, not a sourced fact. `.ASSY` = housing + hardware, not a bare casting |
 | 3536860 | HX35W | 70* | 60* | ? | ? | likely WG | ? | ? | catalog only | `HOUSING,TURBINE.HX35W.PER ASSY` |
-| 3537021 | HX35 | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE.HX35` |
+| 3537021 | HX35 | 70* | 60* | **14 cm²** | ? | **non-gated** | ? | ? | **vendor-confirmed** | `HOUSING,TURBINE.HX35`. Diesel Auto Power: "Holset 14cm Non-Wastegated Turbine Housing", $306.90, listed **Special Order**. The 14 cm is the scarce size (`docs/holset-turbos.md` notes most HX35W were 12 cm) |
 | 3537491 | HX35W | 70* | 60* | ? | ? | likely WG | ? | ? | catalog only | `HOUSING,TURBINE.HX35W.PER ASSY` |
 | 3539323 | HX35W | 70* | 60* | ? | ? | likely WG | ? | ? | catalog only | `HOUSING,TURBINE.HX35W.ASSY` |
 | 3539724 | HX35 | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE.HX35` |
 | 3591155 | HX35W | **?** | **?** | ? | ? | likely WG | ? | ? | catalog only ⚠️ | `HOUSING,TURBINE.HX35W.ASSY`. ⚠️ **Wheel family in doubt.** An eBay listing titles it *"Genuine Holset HX35W HX40w 67 / 76 mm Cummins Turbo Housing 3591155 - 3532214"* — 67/76 is the **HX40** wheel, not 70/60. Either sloppy seller text or this casting spans both. Do not assume 70/60. The same listing pairs it with 3532214, which hints at an **assembly PN ↔ bare casting PN** relationship (unverified) |
-| 3593889 | HX35M | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE.HX35M.ASSY` |
+| 3593889 | HX35M | **?** | **?** | ? | ? | ? | ? | ? | catalog only ⚠️ | `HOUSING,TURBINE.HX35M.ASSY`. ⚠️ **Variant suffix unverified.** `M` (marine?) is an application variant like `G` (gas/CNG), and the catalog holds no HX35M shaft-and-wheel to confirm it runs the 70/60 diesel wheel. Do not inherit the family default here |
 | 3790153 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE.H1C` |
 | 4036501 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE.H1C` |
 | 4036616 | HX35 | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE.HX35` |
 | 4043900 | HX35W | 70* | 60* | ? | ? | likely WG | ? | ? | catalog only | `HOUSING,TURBINE.HX35W` |
 | 4045764 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE.H1C` |
 | 4048561 | HX35W | 70* | 60* | ? | ? | likely WG | ? | ? | catalog only | `HOUSING,TURBINE.HX35W.PERMANENT ASS` (description truncated in source) |
+
+## Meets the current requirement (2026-09-12)
+
+**Requirement:** 12 cm² · 70/60 wheel · divided/dual-scroll · and either **no wastegate**
+or a wastegate whose actuator is **self-contained on the turbine housing** — because a
+spring gate on the housing currently fitted fouls the compressor cover.
+
+### ✅ `3532214` — the match
+
+12 cm², divided T3, bored 70/60, wastegated, and the vendor text speaks directly to the
+clearance problem:
+
+> "**Actuator is contained on the turbine side and does not need to bolt to compressor
+> housing.**" · "**Long housing.**"
+
+~$599.50 at Diesel Auto Power; also stocked by DieselTuff. This is the first-gen /
+WH1C-era self-contained gate, from before Holset moved the canister onto a
+compressor-cover bracket — which is why the interference is a *generational* mismatch,
+not a faulty part. `3591217T` remains the ~$120 claimed reproduction of this casting.
+
+⚠️ **`3532214` is not in the table below** — it is absent from the Holset cross-reference
+(see Caveats).
+
+### ⚠️ `3524123` — non-gated alternative, two blockers
+
+12 cm², twin-entry divided, **short housing**, ~$253–305, genuine Holset casting. Cheaper
+and clears the compressor cover trivially (no gate at all). But:
+
+**1. It deletes the only boost control on the truck.** `docs/holset-turbos.md:235`:
+*"Primary tuning lever: the wastegate spring — and it is the ONLY boost control on the
+truck."* The S472 LP stage is ungated (`:237`), and the HP gate also supplies **overspeed
+protection** (`:304`). Going non-gated is only viable alongside an external gate.
+
+**2. The outlet flange appears not to be the 5-bolt.** Noted on inspection of available
+listings 2026-09-12; **not yet vendor-confirmed** — no seller states the outlet style for
+this casting. Corroborating but circumstantial: the part is named *"short outlet"*, and
+Gillett qualifies it as *"direct fit 1988–1993; fits 1994–2002 with modifications
+(requiring exhaust repositioning)."*
+
+   **Why this matters more than it looks:** `docs/holset-turbos.md:88` records that
+   HX35, HX40 and HY35 **share the same 5-bolt outlet flange**, and that the DPS exhaust
+   adapter *"replaces that 5-bolt flange and reuses its gasket."* A non-5-bolt outlet
+   therefore breaks the DPS adapter path — i.e. it breaks the direct-bolt-in premise the
+   whole current-build section rests on. **Confirm the outlet before buying.**
+
+## Excluded / unresolved candidates
+
+Numbers that surfaced and did **not** earn a row, recorded so the reasoning is not redone:
+
+| PN | Claim | Why excluded |
+|---|---|---|
+| `3794679` | eBay: *"HOUSING TURBINE 3794679 Replacement Fits Cummins Onan HX35G"* | **Wrong or unproven wheel family.** `HX35G` is the **gas/CNG** variant (the catalog literally lists `TURBOCHARGER,HX35GAS`) — Orion Bus, Solaris, Westport Tata, ISLG-280 CNG, Onan gensets; water-cooled, billet 7-blade compressor. No HX35G shaft-and-wheel exists in the catalog, so nothing links it to the 70/60 straight diesel wheel. Also *"Replacement Fits"* is aftermarket-replacement phrasing. **Not** excluded for being absent from the catalog — see below |
+| `3780476` | TurboTurbos: HX35G turbine housing (Solaris Cummins) | Same gas/CNG family question; absent from catalog |
+
+**Catalog absence was not the reason for either.** Five vendor-confirmed genuine HX35G
+parts — `3780476`, `5357728`, `5357934`, `3599491`, `4042333` — are all missing from the
+cross-reference, and it carries **no HX35G turbine housing at all** despite holding an
+HX35G compressor housing (`3591012`), bearing housing (`3592561`), cores, actuators and
+10+ HX35G turbochargers. `3794679` also sits three numbers from `3794682`
+(`KIT,TURBOCHARGER`, independently vendor-cited as an HX35G reference) and eleven from
+`3794668` (`TURBOCHARGER ID21 HX35W`), so the number is very plausibly real.
 
 ## Caveats
 
@@ -118,5 +179,7 @@ likely places to close the `?` cells; retry with a different fetch path.
 - [Diesel Auto Power — 3521927](https://www.dieselautopower.com/holset-16cm-non-wastegated-turbine-housing-3521927) · [Thoroughbred — 3521927H](https://www.thoroughbreddiesel.com/3521927h/) · [Denco — 3521927](https://www.dencodiesel.com/products/3521927-turbine-housing-hx35) · [US Diesel Parts — 3521927H](https://usdieselparts.com/dodge-16cm-performance-turbo-housing-3521927h/)
 - [Diesel Auto Power — 4038909H](https://www.dieselautopower.com/hx35-4038909h) — the turbo-not-a-housing correction
 - [Diesel Auto Power — 3532214](https://www.dieselautopower.com/12cm-wastegated-hx35-turbine-housing-3532214) · [DieselTuff — 12 cm wastegated H1C/HX35](https://www.dieseltuff.com/product/holset-12cm-wastegated-housing-for-h1c-or-hx35/)
+- [Diesel Auto Power — housings, 1989–93 12V](https://www.dieselautopower.com/dodge-ram-cummins/1989-1993-5-9l-12-valve-dodge-cummins/1989-1993cummins-turbochargers/housings) — the single most productive spec source: 12/14/16 cm non-WG + 12 cm WG with prices
+- [Gillett Diesel — GDS TH-01 12 cm non-WG short outlet](https://gillettdiesel.com/products/gds-holset-12cm-non-wastegated-turbine-housing-short-outlet-th-01) · [Diesel Auto Power — 3524123](https://www.dieselautopower.com/holset-12cm-non-wastegated-turbine-housing-3524123)
 - Local archive: [`../jhdiesel-full-catalog.tsv`](../jhdiesel-full-catalog.tsv) — full 4,080-row Holset cross-reference, extracted 2026-09-12
 - Parent doc: `docs/holset-turbos.md`
