@@ -250,4 +250,5 @@ likely places to close the `?` cells; retry with a different fetch path.
 - [Diesel Auto Power — housings, 1989–93 12V](https://www.dieselautopower.com/dodge-ram-cummins/1989-1993-5-9l-12-valve-dodge-cummins/1989-1993cummins-turbochargers/housings) — the single most productive spec source: 12/14/16 cm non-WG + 12 cm WG with prices
 - [Gillett Diesel — GDS TH-01 12 cm non-WG short outlet](https://gillettdiesel.com/products/gds-holset-12cm-non-wastegated-turbine-housing-short-outlet-th-01) · [Diesel Auto Power — 3524123](https://www.dieselautopower.com/holset-12cm-non-wastegated-turbine-housing-3524123)
 - Local archive: [`../jhdiesel-full-catalog.tsv`](../jhdiesel-full-catalog.tsv) — full 4,080-row Holset cross-reference, extracted 2026-09-12
+- Sibling docs: [`compressor-housings.md`](compressor-housings.md) · [`chra-cores.md`](chra-cores.md)
 - Parent doc: `docs/holset-turbos.md`
