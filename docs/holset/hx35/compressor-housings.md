@@ -52,8 +52,28 @@ they are not separable decisions. Prices are a snapshot; eBay listings move.
 |---|---|---|---|
 | **Wheel only** | **$45–50** | 56×83 8-blade factory wheel, balanced | Seller *jackassturbo* states it plainly: *"Fits 1996–1998 Dodge Ram 5.9 Cummins HX35… **Does not fit** factory HX35 turbo on 1999–2002 manual"* — independent confirmation of the generation rule above. Still needs a tab-free cover |
 | **Cover + wheel** ⭐ | **$159.99** | Compressor housing **and** 56 mm 8-blade wheel | *"Compressor housing with 4" inlet and vband discharge flange for HX35/40 bearing housings and includes 8 blade cast aluminum 56mm inducer compressor wheel."* Fort Collins, CO. **Tab-free — visually confirmed** (see below) |
-| **Complete '96–98 turbo** | **~$312–331** | Wheel + tab-free cover + **12 cm turbine housing with turbine-side gate** | Aftermarket reproduction units, not genuine Holset. But this is the generation that solves *both* open problems at once — worth pricing against `3532214` alone at ~$599 |
+| ❌ **Complete '96–98 turbo** | ~$312–331 | **Does NOT deliver a tab-free cover** | See the correction below — photos show a **compressor-mounted** actuator bracket despite the '96–98 listing title |
 | ❌ "Supercore" listings | $199–249 | — | The ones found are **52 mm**, not 56 mm. Wrong wheel. Do not buy on the word "supercore" alone |
+
+### ❌ Correction: the ~$312 complete turbo does not solve the tab problem
+
+Initially flagged as the value play on the reasoning that a '96–98 unit would carry the
+turbine-side gate. **Photos of the actual listing show otherwise**
+([ebay.com/itm/357345678203](https://www.ebay.com/itm/357345678203), $312.25, seller
+`yikaparts`, ships from CN; cites PNs `3539373` / `3538881`, both genuine
+`TURBOCHARGER,HX35 WASTEGA` entries in the catalog):
+
+The wastegate canister is carried on a **long diagonal bracket bolted to the compressor
+housing**, with the rod running down to the wastegate arm on the turbine housing. That is
+the compressor-cover-mounted arrangement — precisely what this requirement exists to avoid.
+The T3 inlet gasket in the photos *is* correctly divided, but the actuator mounting is wrong
+for this build.
+
+⚠️ **Generalise from this:** the 8-blade → turbine-mounted-canister rule describes
+**genuine Holset** production. An aftermarket reproduction can mix configurations regardless
+of the model years in its title, and stock photos may not depict the item shipped. **The
+generation rule does not transfer to repro units** — for those, only a photo of the actual
+part settles it.
 
 ### ✅ Tab-free confirmed by photo, not by marketing copy
 
