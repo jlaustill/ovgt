@@ -71,7 +71,7 @@ has not been independently confirmed for that casting.
 | 3523048 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
 | 3523242 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
 | 3523243 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
-| 3524123 | H1C | 70* | 60* | **12 cm²** | **divided** (twin entry) | **non-gated** | T3 | ⚠️ **not the 5-bolt flange** — see below | **vendor-confirmed** | `HOUSING,TURBINE H1C`. "Holset 12cm Non-Wastegated Turbine Housing. Fits 1988–1998 Dodge Cummins 5.9L 12V With HX35, H1C, or WH1C. **Short housing.**" ~$253 at Diesel Auto Power. Gillett sells the same casting as **GDS TH-01** — *"Genuine, Holset (Cummins Turbo Technologies) 12cm2 short outlet, Non-Wastegated Turbine housing for H1C, WH1C, HX35 & HX35W"*, **twin entry**, $305; adds *"direct fit 1988–1993; fits 1994–2002 with modifications (requiring exhaust repositioning)."* |
+| 3524123 | H1C | 70* | 60* | **12 cm²** | **divided** (twin entry) | **non-gated** | T3 | ⚠️ **unresolved** — see below | **vendor-confirmed** | `HOUSING,TURBINE H1C`. "Holset 12cm Non-Wastegated Turbine Housing. Fits 1988–1998 Dodge Cummins 5.9L 12V With HX35, H1C, or WH1C. **Short housing.**" ~$253 at Diesel Auto Power. Gillett sells the same casting as **GDS TH-01** — *"Genuine, Holset (Cummins Turbo Technologies) 12cm2 short outlet, Non-Wastegated Turbine housing for H1C, WH1C, HX35 & HX35W"*, **twin entry**, $305; adds *"direct fit 1988–1993; fits 1994–2002 with modifications (requiring exhaust repositioning)."* |
 | 3524425 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
 | 3525130 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
 | 3525691 | H1C | 70* | 60* | ? | ? | ? | ? | ? | catalog only | `HOUSING,TURBINE H1C` |
@@ -122,17 +122,41 @@ and clears the compressor cover trivially (no gate at all). But:
 truck."* The S472 LP stage is ungated (`:237`), and the HP gate also supplies **overspeed
 protection** (`:304`). Going non-gated is only viable alongside an external gate.
 
-**2. The outlet flange appears not to be the 5-bolt.** Noted on inspection of available
-listings 2026-09-12; **not yet vendor-confirmed** — no seller states the outlet style for
-this casting. Corroborating but circumstantial: the part is named *"short outlet"*, and
-Gillett qualifies it as *"direct fit 1988–1993; fits 1994–2002 with modifications
-(requiring exhaust repositioning)."*
+**2. The outlet is UNRESOLVED — do not treat this as settled either way.**
 
-   **Why this matters more than it looks:** `docs/holset-turbos.md:88` records that
-   HX35, HX40 and HY35 **share the same 5-bolt outlet flange**, and that the DPS exhaust
-   adapter *"replaces that 5-bolt flange and reuses its gasket."* A non-5-bolt outlet
-   therefore breaks the DPS adapter path — i.e. it breaks the direct-bolt-in premise the
-   whole current-build section rests on. **Confirm the outlet before buying.**
+Raised 2026-09-12 on the observation that the outlet looked like it might not be the
+5-bolt flange. **No verified image of this casting has been found**, and product photos
+are not acceptable evidence. What the sources actually support is a *different* claim
+than the one first recorded:
+
+- The **long/short distinction is about outlet POSITION, not bolt pattern.** Short outlet
+  is a direct drop-in for **1988–1993** trucks; on **1994–1998** it reportedly requires
+  **moving the exhaust forward ~1.25"**. Long outlet is the better choice on 1994–2002.
+  That is a clearance/geometry problem, not necessarily a flange-pattern problem.
+- Forum sources further claim the H1C and HX35 outlets **share a 3-1/8" V-band clamp**,
+  and that a 3" V-clamp flange fits both 1989–1998 H1C and HX35 outlets — which would
+  make the outlet *compatible*, just displaced.
+- Against that, other forum text says the early H1C outlet is *"a hose connection"* while
+  the HX35 uses a V-band. These claims are not mutually consistent, and all of them are
+  forum-sourced.
+
+So the flange pattern is **genuinely unknown for `3524123`**, and the earlier phrasing
+("appears not to be the 5-bolt") is withdrawn as overstated — it was an impression, not a
+finding.
+
+**Why it still has to be settled before buying:** `docs/holset-turbos.md:88` records that
+the DPS exhaust adapter *"replaces that 5-bolt flange and reuses its gasket."* If the
+outlet differs in pattern, the adapter path breaks outright; if it differs only by ~1.25"
+in position, the adapter may still bolt up but the downpipe geometry moves. Those are very
+different outcomes and only one of them is survivable without fabrication.
+
+**How to settle it without trusting a photo:**
+1. **Ask Gillett Diesel** — they sell this exact casting as their own GDS TH-01 and can
+   state the outlet pattern and the 1.25" offset directly. Diesel Auto Power likewise.
+2. **Cummins QuickServe / parts.cummins.com** — `3524123` is a genuine Cummins/Holset
+   number, so the OEM catalog should carry an exploded view rather than marketing art.
+3. **Ask for a photo of the actual item in stock**, tape measure across the flange, not
+   the catalog image.
 
 ## Excluded / unresolved candidates
 
