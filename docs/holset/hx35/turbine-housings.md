@@ -158,6 +158,50 @@ different outcomes and only one of them is survivable without fabrication.
 3. **Ask for a photo of the actual item in stock**, tape measure across the flange, not
    the catalog image.
 
+### 🆕 `3591217` — cast-in number found 2026-09-12, verdict upgraded
+
+An eBay listing titled *"12CM 96-98 Ram 5.9 T3 HX35w WH1C twin scroll turbine exhaust
+housing 60mm"* shows **`3591217` and `12 L54` cast into the housing**, described as:
+
+> "12cm twin scroll turbine housing for 60mm HX35 wheel. This fits the 96–98 5.9 style,
+> **with the wastegate actuator rod perpendicular to the inlet flange.** Refer to photos
+> for wastegate arm location when closed. Weight as shown in photos: **13 lbs 2 oz**"
+
+**This overturns the basis of the UNVERIFIED verdict.** That verdict rested on an earlier
+listing described as *"**Unmarked** Cummins Holset 3591217"* — unmarked meaning no Holset
+number cast in. A casting with the number **molded into it** is the opposite evidence, and
+per Holset identification practice *"casting numbers are molded into the compressor and
+turbine housings and the center bearing housing"*. So `3591217` reads as a **genuine
+Holset casting number**.
+
+**A sand-cast finish is not a red flag.** OEM cast-iron turbine housings are sand cast
+(SiMo ductile iron) — rough surface texture and raised numbers that are awkward to read are
+exactly what a genuine Holset housing looks like. A crisp, machined-looking number would be
+*more* suspicious, not less.
+
+**`12 L54`:** the `12` is very plausibly the **cm² size cast into the housing**, which
+agrees with the listing's own 12 cm twin-scroll claim; `L54` reads as a foundry/date code.
+Inference, not confirmed.
+
+**Where this leaves the three original arguments against it:**
+
+| Argument | Status |
+|---|---|
+| Absent from both public PN references | ❌ Withdrawn — `3532214` is absent too |
+| Unmarked, no number cast in | ❌ Contradicted — this casting carries `3591217` |
+| `T` suffix is not a Holset convention | ⚠️ Still stands, but it describes the **seller's** designation, not the casting. The cast-in number is plain `3591217` |
+
+**Against the current requirement this listing matches on every stated spec:** 12 cm²,
+twin scroll (divided), 60 mm wheel, T3. The open variable is the one the seller
+helpfully calls out — **wastegate arm geometry**. "Actuator rod perpendicular to the inlet
+flange" is precisely what decides compressor-cover clearance, so compare the seller's
+arm-when-closed photo against the housing currently fitted before buying.
+
+**Useful forensics to request:** the **13 lb 2 oz** weight is a good discriminator — ask
+for it on any competing example, since a reproduction is unlikely to match an OEM casting's
+mass closely. Also worth confirming: divided (twin-entry) inlet, and that the bore is cut
+for the 60 mm exducer rather than the 64 mm HX40 wheel.
+
 ## Excluded / unresolved candidates
 
 Numbers that surfaced and did **not** earn a row, recorded so the reasoning is not redone:
